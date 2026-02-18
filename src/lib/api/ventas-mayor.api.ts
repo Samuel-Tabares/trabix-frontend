@@ -23,10 +23,8 @@ export const ventasMayorApi = {
     return response.data;
   },
 
-  calcularStock: async (vendedorId: string): Promise<StockDisponibleResponse> => {
-    const response = await apiClient.get<StockDisponibleResponse>(
-      `/ventas-mayor/stock-disponible/${vendedorId}`,
-    );
+  calcularStock: async (): Promise<StockDisponibleResponse> => {
+    const response = await apiClient.get<StockDisponibleResponse>('/ventas-mayor/calcular-stock');
     return response.data;
   },
 

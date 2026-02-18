@@ -49,13 +49,13 @@ export const usuariosApi = {
 
   resetPassword: async (id: string): Promise<{ passwordTemporal: string; message: string }> => {
     const response = await apiClient.post<{ passwordTemporal: string; message: string }>(
-      `/usuarios/${id}/reset-password`,
+      `/auth/admin/reset-password/${id}`,
     );
     return response.data;
   },
 
   desbloquear: async (id: string): Promise<MessageResponse> => {
-    const response = await apiClient.post<MessageResponse>(`/usuarios/${id}/desbloquear`);
+    const response = await apiClient.post<MessageResponse>(`/auth/admin/desbloquear/${id}`);
     return response.data;
   },
 
@@ -69,8 +69,8 @@ export const usuariosApi = {
     return response.data;
   },
 
-  listarEliminados: async (): Promise<Usuario[]> => {
-    const response = await apiClient.get<Usuario[]>('/usuarios/eliminados');
+  listarEliminados: async (): Promise<UsuariosPaginados> => {
+    const response = await apiClient.get<UsuariosPaginados>('/usuarios/eliminados');
     return response.data;
   },
 

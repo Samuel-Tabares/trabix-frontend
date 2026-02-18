@@ -8,16 +8,52 @@ const apiClient = axios.create({
   },
 });
 
-// Request interceptor: attach auth token
-apiClient.interceptors.request.use((config: InternalAxiosRequestConfig) => {
-  const token = useAuthStore.getState().accessToken;
-  if (token) {
-    config.headers.Authorization = `Bearer ${token}`;
+// BUG-001 FIX: Shared proactive-refresh promise so all concurrent requests on
+// page reload wait for one refresh cycle instead of each getting a 401 first.
+let proactiveRefreshPromise: Promise<string | null> | null = null;
+
+// Request interceptor: attach auth token, proactively refresh when needed
+apiClient.interceptors.request.use(async (config: InternalAxiosRequestConfig) => {
+  // Skip proactive refresh for login/refresh endpoints to avoid recursion
+  if (config.url?.includes('/auth/login') || config.url?.includes('/auth/refresh')) {
+    return config;
   }
+
+  const { accessToken, refreshToken } = useAuthStore.getState();
+
+  if (accessToken) {
+    config.headers.Authorization = `Bearer ${accessToken}`;
+    return config;
+  }
+
+  // No accessToken (e.g. page reload — accessToken is not persisted) but we
+  // have a refreshToken: refresh proactively so requests don't need a 401 round-trip.
+  if (refreshToken) {
+    if (!proactiveRefreshPromise) {
+      proactiveRefreshPromise = axios
+        .post(`${process.env.NEXT_PUBLIC_API_URL}/auth/refresh`, { refreshToken })
+        .then((res) => {
+          useAuthStore.getState().updateTokens(res.data.accessToken, res.data.refreshToken);
+          return res.data.accessToken as string;
+        })
+        .catch(() => {
+          useAuthStore.getState().logout();
+          return null;
+        })
+        .finally(() => {
+          proactiveRefreshPromise = null;
+        });
+    }
+    const newToken = await proactiveRefreshPromise;
+    if (newToken) {
+      config.headers.Authorization = `Bearer ${newToken}`;
+    }
+  }
+
   return config;
 });
 
-// Response interceptor: handle 401 + token refresh
+// Response interceptor: handle residual 401s + token refresh fallback
 let isRefreshing = false;
 let failedQueue: Array<{
   resolve: (token: string) => void;
@@ -35,6 +71,13 @@ const processQueue = (error: unknown, token: string | null = null) => {
   failedQueue = [];
 };
 
+// BUG-003 FIX: Guard window access so this module is safe to import in SSR context
+const redirectToLogin = () => {
+  if (typeof window !== 'undefined') {
+    window.location.href = '/login';
+  }
+};
+
 apiClient.interceptors.response.use(
   (response) => response,
   async (error: AxiosError) => {
@@ -49,7 +92,7 @@ apiClient.interceptors.response.use(
     // Don't try to refresh if this was already a refresh request
     if (originalRequest.url?.includes('/auth/refresh')) {
       useAuthStore.getState().logout();
-      window.location.href = '/login';
+      redirectToLogin();
       return Promise.reject(error);
     }
 
@@ -91,7 +134,7 @@ apiClient.interceptors.response.use(
     } catch (refreshError) {
       processQueue(refreshError, null);
       useAuthStore.getState().logout();
-      window.location.href = '/login';
+      redirectToLogin();
       return Promise.reject(refreshError);
     } finally {
       isRefreshing = false;

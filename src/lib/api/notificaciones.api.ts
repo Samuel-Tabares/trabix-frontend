@@ -29,7 +29,7 @@ export const notificacionesApi = {
   },
 
   enviar: async (data: EnviarNotificacionRequest): Promise<Notificacion> => {
-    const response = await apiClient.post<Notificacion>('/notificaciones', data);
+    const response = await apiClient.post<Notificacion>('/notificaciones/enviar', data);
     return response.data;
   },
 };

@@ -14,7 +14,7 @@ export function middleware(request: NextRequest) {
 
   if (authCookie) {
     try {
-      const parsed = JSON.parse(authCookie);
+      const parsed = JSON.parse(decodeURIComponent(authCookie));
       isAuthenticated = parsed.state?.isAuthenticated ?? false;
       userRol = parsed.state?.user?.rol ?? null;
       requiereCambioPassword =
@@ -48,6 +48,11 @@ export function middleware(request: NextRequest) {
     return NextResponse.redirect(new URL('/cambiar-password', request.url));
   }
 
+  // Routes shared across all authenticated roles (no role restriction)
+  if (pathname.startsWith('/notificaciones')) {
+    return NextResponse.next();
+  }
+
   // Role-based access control
   const isAdminRoute =
     pathname.startsWith('/dashboard') ||
@@ -56,7 +61,7 @@ export function middleware(request: NextRequest) {
     pathname.startsWith('/ventas') ||
     pathname.startsWith('/cuadres') ||
     pathname.startsWith('/stock') ||
-    pathname.startsWith('/equipamiento') && !pathname.startsWith('/equipamiento-vendedor') ||
+    (pathname.startsWith('/equipamiento') && !pathname.startsWith('/equipamiento-vendedor')) ||
     pathname.startsWith('/fondo-recompensas') ||
     pathname.startsWith('/configuraciones') ||
     pathname.startsWith('/ventas-mayor') ||

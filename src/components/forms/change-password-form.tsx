@@ -29,6 +29,7 @@ import type { ApiError } from '@/types/api.types';
 export function ChangePasswordForm() {
   const router = useRouter();
   const user = useAuthStore((state) => state.user);
+  const updateUser = useAuthStore((state) => state.updateUser);
   const [error, setError] = useState<string | null>(null);
 
   const {
@@ -49,6 +50,9 @@ export function ChangePasswordForm() {
 
       toast.success('Contraseña cambiada exitosamente');
 
+      // Update in-memory store so middleware/guards see the change immediately
+      updateUser({ requiereCambioPassword: false });
+
       // Update cookie to reflect password change
       const authCookie = document.cookie
         .split('; ')
@@ -61,7 +65,7 @@ export function ChangePasswordForm() {
           if (parsed.state?.user) {
             parsed.state.user.requiereCambioPassword = false;
           }
-          document.cookie = `trabix-auth=${JSON.stringify(parsed)};path=/;max-age=${60 * 60 * 24 * 30}`;
+          document.cookie = `trabix-auth=${encodeURIComponent(JSON.stringify(parsed))};path=/;max-age=${60 * 60 * 24 * 30};SameSite=Strict`;
         } catch {
           // ignore cookie parse errors
         }

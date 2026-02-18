@@ -45,13 +45,14 @@ export function LoginForm() {
 
       login(response);
 
-      // Set cookie for middleware
-      document.cookie = `trabix-auth=${JSON.stringify({
+      // Set cookie for middleware — URL-encoded to handle special chars in user data,
+      // SameSite=Strict to block cross-site request forgery.
+      document.cookie = `trabix-auth=${encodeURIComponent(JSON.stringify({
         state: {
           isAuthenticated: true,
           user: response.user,
         },
-      })};path=/;max-age=${60 * 60 * 24 * 30}`;
+      }))};path=/;max-age=${60 * 60 * 24 * 30};SameSite=Strict`;
 
       if (response.user.requiereCambioPassword) {
         router.push('/cambiar-password');

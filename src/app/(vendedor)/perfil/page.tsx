@@ -22,11 +22,13 @@ export default function PerfilPage() {
   const solicitarEquip = useSolicitarEquipamiento();
   const logout = useAuthStore((s) => s.logout);
   const refreshToken = useAuthStore((s) => s.refreshToken);
+  const accessToken = useAuthStore((s) => s.accessToken);
 
   const handleLogout = async () => {
     try {
       if (refreshToken) {
-        await authApi.logout(refreshToken);
+        // BUG-010 FIX: pass accessToken so the server blacklists it immediately
+        await authApi.logout(refreshToken, accessToken ?? undefined);
       }
     } catch {
       // ignore logout API errors

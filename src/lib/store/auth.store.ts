@@ -16,6 +16,7 @@ interface AuthActions {
   login: (response: AuthResponse) => void;
   logout: () => void;
   updateTokens: (accessToken: string, refreshToken: string) => void;
+  updateUser: (partial: Partial<UserInfo>) => void;
   setHydrated: () => void;
 }
 
@@ -46,6 +47,11 @@ export const useAuthStore = create<AuthState & AuthActions>()(
 
       updateTokens: (accessToken: string, refreshToken: string) =>
         set({ accessToken, refreshToken }),
+
+      updateUser: (partial: Partial<UserInfo>) =>
+        set((state) => ({
+          user: state.user ? { ...state.user, ...partial } : state.user,
+        })),
 
       setHydrated: () => set({ isHydrated: true }),
     }),

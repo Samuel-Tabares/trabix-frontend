@@ -11,7 +11,7 @@ import type {
 
 export const pedidosStockApi = {
   crear: async (data: CrearPedidoRequest): Promise<PedidoStockResponse> => {
-    const response = await apiClient.post<PedidoStockResponse>('adminadmin/pedidos-stock', data);
+    const response = await apiClient.post<PedidoStockResponse>('/admin/pedidos-stock', data);
     return response.data;
   },
 

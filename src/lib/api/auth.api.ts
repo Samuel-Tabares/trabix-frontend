@@ -20,9 +20,10 @@ export const authApi = {
     return response.data;
   },
 
-  logout: async (refreshToken: string): Promise<MessageResponse> => {
+  logout: async (refreshToken: string, accessToken?: string): Promise<MessageResponse> => {
     const response = await apiClient.post<MessageResponse>('/auth/logout', {
       refreshToken,
+      ...(accessToken && { accessToken }),
     });
     return response.data;
   },
