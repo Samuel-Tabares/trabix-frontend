@@ -15,6 +15,7 @@ import {
 import { useRegistrarSalida } from '@/lib/hooks/use-fondo-recompensas';
 import { useUsuarios } from '@/lib/hooks/use-usuarios';
 import { Rol } from '@/types/enums';
+import { getApiError } from '@/lib/utils/errors';
 import { toast } from 'sonner';
 
 export default function RegistrarSalidaPage() {
@@ -36,7 +37,7 @@ export default function RegistrarSalidaPage() {
           router.push('/fondo-recompensas');
         },
         onError: (err) => {
-          toast.error((err as { response?: { data?: { message?: string } } })?.response?.data?.message ?? 'Error al registrar salida');
+          toast.error(getApiError(err, 'Error al registrar salida'));
         },
       },
     );

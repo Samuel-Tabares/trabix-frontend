@@ -12,6 +12,7 @@ import { useCurrentUser } from '@/lib/hooks/use-auth';
 import { useMiEquipamiento, useSolicitarEquipamiento } from '@/lib/hooks/use-equipamiento';
 import { useAuthStore } from '@/lib/store/auth.store';
 import { authApi } from '@/lib/api/auth.api';
+import { getApiError } from '@/lib/utils/errors';
 import { formatCOP, formatDate } from '@/lib/utils/format';
 import { EstadoEquipamiento } from '@/types/enums';
 
@@ -44,10 +45,7 @@ export default function PerfilPage() {
       await solicitarEquip.mutateAsync({ tieneDeposito });
       toast.success('Equipamiento solicitado exitosamente');
     } catch (err) {
-      const message =
-        (err as { response?: { data?: { message?: string } } })?.response?.data?.message ??
-        'Error al solicitar equipamiento';
-      toast.error(message);
+      toast.error(getApiError(err, 'Error al solicitar equipamiento'));
     }
   };
 

@@ -15,6 +15,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { useRegistrarVentaMayor, useStockDisponible } from '@/lib/hooks/use-ventas-mayor';
 import { useUsuarios } from '@/lib/hooks/use-usuarios';
 import { Rol, EstadoUsuario, ModalidadVentaMayor } from '@/types/enums';
+import { getApiError } from '@/lib/utils/errors';
 import { formatCOP } from '@/lib/utils/format';
 import { toast } from 'sonner';
 
@@ -36,7 +37,7 @@ export default function RegistrarVentaMayorPage() {
       { vendedorId, cantidadUnidades: Number(cantidad), conLicor, modalidad },
       {
         onSuccess: () => { toast.success('Venta mayor registrada'); router.push('/ventas-mayor'); },
-        onError: (err) => toast.error((err as { response?: { data?: { message?: string } } })?.response?.data?.message ?? 'Error'),
+        onError: (err) => toast.error(getApiError(err, 'Error al registrar venta mayor')),
       },
     );
   };

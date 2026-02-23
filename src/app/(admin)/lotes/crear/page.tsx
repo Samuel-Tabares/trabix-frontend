@@ -14,6 +14,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { useCrearLote } from '@/lib/hooks/use-lotes';
 import { useUsuarios } from '@/lib/hooks/use-usuarios';
 import { Rol, EstadoUsuario } from '@/types/enums';
+import { getApiError } from '@/lib/utils/errors';
 import { toast } from 'sonner';
 
 export default function CrearLotePage() {
@@ -30,7 +31,7 @@ export default function CrearLotePage() {
       { vendedorId, cantidadTrabix: Number(cantidad) },
       {
         onSuccess: () => { toast.success('Lote creado'); router.push('/lotes'); },
-        onError: (err) => toast.error((err as { response?: { data?: { message?: string } } })?.response?.data?.message ?? 'Error al crear lote'),
+        onError: (err) => toast.error(getApiError(err, 'Error al crear lote')),
       },
     );
   };

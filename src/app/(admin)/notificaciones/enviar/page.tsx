@@ -15,6 +15,7 @@ import {
 import { useEnviarNotificacion } from '@/lib/hooks/use-notificaciones';
 import { useUsuarios } from '@/lib/hooks/use-usuarios';
 import { TipoNotificacion, CanalNotificacion } from '@/types/enums';
+import { getApiError } from '@/lib/utils/errors';
 import { toast } from 'sonner';
 
 export default function EnviarNotificacionPage() {
@@ -44,7 +45,7 @@ export default function EnviarNotificacionPage() {
           router.push('/notificaciones');
         },
         onError: (err) => {
-          toast.error((err as { response?: { data?: { message?: string } } })?.response?.data?.message ?? 'Error al enviar');
+          toast.error(getApiError(err, 'Error al enviar la notificación'));
         },
       },
     );

@@ -24,6 +24,7 @@ import {
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { useCrearUsuario, useUsuarios } from '@/lib/hooks/use-usuarios';
 import { Rol } from '@/types/enums';
+import { getApiError } from '@/lib/utils/errors';
 import { toast } from 'sonner';
 
 export default function CrearUsuarioPage() {
@@ -56,10 +57,7 @@ export default function CrearUsuarioPage() {
           toast.success('Usuario creado exitosamente');
         },
         onError: (err) => {
-          toast.error(
-            (err as { response?: { data?: { message?: string } } })?.response?.data?.message ??
-              'Error al crear usuario',
-          );
+          toast.error(getApiError(err, 'Error al crear usuario'));
         },
       },
     );

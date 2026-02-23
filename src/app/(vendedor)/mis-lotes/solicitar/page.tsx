@@ -11,6 +11,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useInfoSolicitud, useSolicitarLote } from '@/lib/hooks/use-lotes';
+import { getApiError } from '@/lib/utils/errors';
 import { formatCOP } from '@/lib/utils/format';
 
 export default function SolicitarLotePage() {
@@ -31,10 +32,7 @@ export default function SolicitarLotePage() {
       toast.success('Lote solicitado exitosamente');
       router.push('/mis-lotes');
     } catch (err) {
-      const message =
-        (err as { response?: { data?: { message?: string } } })?.response?.data?.message ??
-        'Error al solicitar el lote';
-      toast.error(message);
+      toast.error(getApiError(err, 'Error al solicitar el lote'));
     }
   };
 

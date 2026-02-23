@@ -10,6 +10,7 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { useCrearPedido } from '@/lib/hooks/use-pedidos-stock';
+import { getApiError } from '@/lib/utils/errors';
 import { toast } from 'sonner';
 
 export default function CrearPedidoStockPage() {
@@ -28,7 +29,7 @@ export default function CrearPedidoStockPage() {
           router.push('/stock');
         },
         onError: (err) => {
-          toast.error((err as { response?: { data?: { message?: string } } })?.response?.data?.message ?? 'Error al crear pedido');
+          toast.error(getApiError(err, 'Error al crear pedido de stock'));
         },
       },
     );
