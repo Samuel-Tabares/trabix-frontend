@@ -1,4 +1,5 @@
 import axios, { AxiosError, InternalAxiosRequestConfig } from 'axios';
+import { toast } from 'sonner';
 import { useAuthStore } from '@/lib/store/auth.store';
 
 const apiClient = axios.create({
@@ -18,6 +19,22 @@ const redirectToLogin = () => {
   if (typeof window !== 'undefined') {
     window.location.href = '/login';
   }
+};
+
+// Limpia la cookie trabix-auth que lee el middleware (proxy.ts).
+// Sin esto, el middleware ve isAuthenticated=true aunque Zustand ya hizo logout,
+// y redirige de vuelta a la ruta protegida generando un loop infinito.
+const clearAuthCookie = () => {
+  if (typeof window !== 'undefined') {
+    document.cookie = 'trabix-auth=;path=/;max-age=0';
+  }
+};
+
+// Logout forzado desde el interceptor: limpia Zustand + cookie + redirige.
+const forceLogout = () => {
+  clearAuthCookie();
+  useAuthStore.getState().logout();
+  redirectToLogin();
 };
 
 // ─── Silent token refresh ─────────────────────────────────────────────────────
@@ -41,8 +58,7 @@ const doSilentRefresh = async () => {
     scheduleTokenRefresh(data.expiresIn as number);
   } catch {
     // La cookie rt expiró o fue invalidada — cerrar sesión limpiamente
-    useAuthStore.getState().logout();
-    redirectToLogin();
+    forceLogout();
   }
 };
 
@@ -91,8 +107,7 @@ apiClient.interceptors.request.use(async (config: InternalAxiosRequestConfig) =>
         .catch(() => {
           // La cookie rt no existe o expiró — cerrar sesión y redirigir de inmediato.
           // No esperar a que los requests pendientes reciban 401 y reintenten.
-          useAuthStore.getState().logout();
-          redirectToLogin();
+          forceLogout();
           return null;
         })
         .finally(() => {
@@ -138,6 +153,15 @@ apiClient.interceptors.response.use(
     return response;
   },
   async (error: AxiosError) => {
+    // Manejar 429 globalmente — mostrar toast y propagar el error sin logout
+    if (error.response?.status === 429) {
+      toast.error('Demasiados intentos. Espera un momento antes de continuar.', {
+        id: 'rate-limit', // evita duplicar toasts si varios requests fallan a la vez
+        duration: 5000,
+      });
+      return Promise.reject(error);
+    }
+
     const originalRequest = error.config as InternalAxiosRequestConfig & {
       _retry?: boolean;
     };
@@ -188,8 +212,7 @@ apiClient.interceptors.response.use(
       return apiClient(originalRequest);
     } catch (refreshError) {
       processQueue(refreshError, null);
-      useAuthStore.getState().logout();
-      redirectToLogin();
+      forceLogout();
       return Promise.reject(refreshError);
     } finally {
       isRefreshing = false;

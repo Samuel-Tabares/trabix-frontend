@@ -1,7 +1,7 @@
 'use client';
 
 import { useRouter } from 'next/navigation';
-import { LogOut, User, Shield, Package, Loader2, CheckCircle2, XCircle } from 'lucide-react';
+import { LogOut, User, Shield, Package, Loader2, CheckCircle2, XCircle, AlertTriangle } from 'lucide-react';
 import { toast } from 'sonner';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -229,6 +229,44 @@ export default function PerfilPage() {
                   {equipamiento.fechaEntrega && (
                     <div className="flex justify-between">
                       <span className="text-muted-foreground">Entregado</span>
+                      <span>{formatDate(equipamiento.fechaEntrega)}</span>
+                    </div>
+                  )}
+                </>
+              )}
+              {equipamiento.estado === EstadoEquipamiento.PERDIDO && (
+                <>
+                  <Separator />
+                  <div className="rounded-lg bg-red-50 border border-red-200 p-3 space-y-2">
+                    <div className="flex items-center gap-2 text-red-700">
+                      <AlertTriangle className="h-4 w-4 shrink-0" />
+                      <span className="font-semibold text-xs">Equipamiento reportado como perdido</span>
+                    </div>
+                    <p className="text-xs text-red-600">
+                      Tu equipamiento fue reportado como perdido. La deuda generada se descontará en tus próximos cuadres.
+                    </p>
+                  </div>
+                  {equipamiento.deudaPerdida > 0 && (
+                    <div className="flex justify-between">
+                      <span className="text-muted-foreground">Deuda por pérdida</span>
+                      <span className="font-medium text-red-600">{formatCOP(equipamiento.deudaPerdida)}</span>
+                    </div>
+                  )}
+                  {equipamiento.deudaDano > 0 && (
+                    <div className="flex justify-between">
+                      <span className="text-muted-foreground">Deuda por daño</span>
+                      <span className="font-medium text-red-600">{formatCOP(equipamiento.deudaDano)}</span>
+                    </div>
+                  )}
+                  {equipamiento.tieneDeuda && (
+                    <div className="flex justify-between font-medium">
+                      <span className="text-muted-foreground">Total adeudado</span>
+                      <span className="text-red-600">{formatCOP(equipamiento.deudaTotal)}</span>
+                    </div>
+                  )}
+                  {equipamiento.fechaEntrega && (
+                    <div className="flex justify-between">
+                      <span className="text-muted-foreground">Fecha de entrega</span>
                       <span>{formatDate(equipamiento.fechaEntrega)}</span>
                     </div>
                   )}

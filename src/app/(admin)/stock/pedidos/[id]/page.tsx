@@ -127,7 +127,7 @@ export default function PedidoStockDetallePage({ params }: { params: Promise<{ i
                 <div className="flex items-center gap-2">
                   <span className="font-semibold">{formatCOP(c.costoTotal)}</span>
                   {isBorrador && (
-                    <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => {
+                    <Button size="icon" variant="ghost" className="h-7 w-7" disabled={eliminarCosto.isPending} onClick={() => {
                       eliminarCosto.mutate({ pedidoId: id, costoId: c.id }, {
                         onSuccess: () => toast.success('Costo eliminado'),
                         onError: () => toast.error('Error'),

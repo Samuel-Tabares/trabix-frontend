@@ -2,14 +2,14 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { Home, ShoppingCart, Package, Receipt, User } from 'lucide-react';
+import { Home, ShoppingCart, Package, ClipboardList, User } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 const navItems = [
   { href: '/inicio', label: 'Inicio', icon: Home },
   { href: '/vender', label: 'Vender', icon: ShoppingCart },
   { href: '/mis-lotes', label: 'Mis Lotes', icon: Package },
-  { href: '/mis-ventas', label: 'Mis Ventas', icon: Receipt },
+  { href: '/mis-cuadres', label: 'Cuadres', icon: ClipboardList },
   { href: '/perfil', label: 'Perfil', icon: User },
 ];
 
