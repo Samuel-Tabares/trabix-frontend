@@ -2,6 +2,7 @@
 
 import { use, useState } from 'react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { ArrowLeft } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -15,6 +16,7 @@ import { toast } from 'sonner';
 
 export default function VentaDetallePage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
+  const router = useRouter();
   const { data: venta, isLoading } = useVenta(id);
   const aprobar = useAprobarVenta();
   const rechazar = useRechazarVenta();
@@ -37,6 +39,20 @@ export default function VentaDetallePage({ params }: { params: Promise<{ id: str
         <h1 className="text-2xl font-bold">Venta — {venta.cantidadTrabix} TRABIX</h1>
         <EstadoBadge estado={venta.estado} />
       </div>
+
+      {(venta.vendedorNombre || venta.vendedorTelefono) && (
+        <Card>
+          <CardHeader><CardTitle className="text-base">Vendedor</CardTitle></CardHeader>
+          <CardContent className="grid grid-cols-2 gap-3 text-sm">
+            {venta.vendedorNombre && (
+              <div><p className="text-muted-foreground">Nombre</p><p className="font-semibold">{venta.vendedorNombre}</p></div>
+            )}
+            {venta.vendedorTelefono && (
+              <div><p className="text-muted-foreground">Celular</p><p className="font-semibold">{venta.vendedorTelefono}</p></div>
+            )}
+          </CardContent>
+        </Card>
+      )}
 
       <Card>
         <CardHeader><CardTitle className="text-base">Información</CardTitle></CardHeader>
@@ -70,11 +86,20 @@ export default function VentaDetallePage({ params }: { params: Promise<{ id: str
         variant={confirmAction === 'rechazar' ? 'destructive' : 'default'}
         confirmLabel={confirmAction === 'aprobar' ? 'Aprobar' : 'Rechazar'}
         onConfirm={() => {
-          const m = confirmAction === 'aprobar' ? aprobar : rechazar;
-          m.mutate(id, {
-            onSuccess: () => { toast.success(confirmAction === 'aprobar' ? 'Venta aprobada' : 'Venta rechazada'); setConfirmAction(null); },
-            onError: () => toast.error('Error'),
-          });
+          if (confirmAction === 'aprobar') {
+            aprobar.mutate(id, {
+              onSuccess: () => { toast.success('Venta aprobada'); setConfirmAction(null); },
+              onError: () => toast.error('Error al aprobar la venta'),
+            });
+          } else {
+            rechazar.mutate(id, {
+              onSuccess: () => {
+                toast.success('Venta eliminada');
+                router.push('/ventas');
+              },
+              onError: () => toast.error('Error al rechazar la venta'),
+            });
+          }
         }}
         isLoading={aprobar.isPending || rechazar.isPending}
       />

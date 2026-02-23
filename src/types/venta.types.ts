@@ -22,6 +22,8 @@ export interface DetalleVenta {
 export interface Venta {
   id: string;
   vendedorId: string;
+  vendedorNombre?: string;
+  vendedorTelefono?: string;
   loteId: string;
   tandaId: string;
   estado: EstadoVenta;

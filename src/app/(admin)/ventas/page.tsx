@@ -26,6 +26,16 @@ export default function VentasAdminPage() {
   });
 
   const columns = [
+    {
+      key: 'vendedorNombre',
+      label: 'Vendedor',
+      render: (_: unknown, row: Venta) => (
+        <div>
+          <p className="font-medium text-sm">{row.vendedorNombre ?? '—'}</p>
+          <p className="text-xs text-muted-foreground">{row.vendedorTelefono ?? ''}</p>
+        </div>
+      ),
+    },
     { key: 'cantidadTrabix', label: 'TRABIX' },
     { key: 'montoTotal', label: 'Monto', render: (val: number) => formatCOP(val) },
     { key: 'estado', label: 'Estado', render: (val: string) => <EstadoBadge estado={val} /> },
@@ -49,7 +59,6 @@ export default function VentasAdminPage() {
           <SelectItem value="all">Todas</SelectItem>
           <SelectItem value={EstadoVenta.PENDIENTE}>Pendiente</SelectItem>
           <SelectItem value={EstadoVenta.APROBADA}>Aprobada</SelectItem>
-          <SelectItem value={EstadoVenta.RECHAZADA}>Rechazada</SelectItem>
         </SelectContent>
       </Select>
 

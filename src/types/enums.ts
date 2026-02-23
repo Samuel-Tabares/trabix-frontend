@@ -31,7 +31,6 @@ export enum EstadoTanda {
 export enum EstadoVenta {
   PENDIENTE = 'PENDIENTE',
   APROBADA = 'APROBADA',
-  RECHAZADA = 'RECHAZADA',
 }
 
 export enum TipoVenta {

@@ -16,7 +16,6 @@ const FILTROS = [
   { label: 'Todas', value: undefined },
   { label: 'Pendientes', value: EstadoVenta.PENDIENTE },
   { label: 'Aprobadas', value: EstadoVenta.APROBADA },
-  { label: 'Rechazadas', value: EstadoVenta.RECHAZADA },
 ] as const;
 
 export default function MisVentasPage() {
