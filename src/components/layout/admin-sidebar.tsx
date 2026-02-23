@@ -43,14 +43,13 @@ const navItems = [
 export function AdminSidebar() {
   const pathname = usePathname();
   const router = useRouter();
-  const { user, accessToken, refreshToken, logout } = useAuthStore();
+  const { user, accessToken, logout } = useAuthStore();
   const { sidebarOpen, toggleSidebar } = useUIStore();
 
   const handleLogout = async () => {
     try {
-      if (refreshToken) {
-        await authApi.logout(refreshToken, accessToken ?? undefined);
-      }
+      // refreshToken viaja en cookie HttpOnly — solo pasamos accessToken para blacklistarlo
+      await authApi.logout(accessToken ?? undefined);
     } catch {
       // Continue with local logout even if API fails
     }

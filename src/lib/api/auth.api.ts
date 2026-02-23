@@ -13,16 +13,15 @@ export const authApi = {
     return response.data;
   },
 
-  refresh: async (refreshToken: string): Promise<AuthResponse> => {
-    const response = await apiClient.post<AuthResponse>('/auth/refresh', {
-      refreshToken,
-    });
+  refresh: async (): Promise<AuthResponse> => {
+    // El refreshToken viaja en la HttpOnly cookie 'rt' — el browser lo envía automáticamente
+    const response = await apiClient.post<AuthResponse>('/auth/refresh', {});
     return response.data;
   },
 
-  logout: async (refreshToken: string, accessToken?: string): Promise<MessageResponse> => {
+  logout: async (accessToken?: string): Promise<MessageResponse> => {
+    // El refreshToken viaja en la HttpOnly cookie 'rt'
     const response = await apiClient.post<MessageResponse>('/auth/logout', {
-      refreshToken,
       ...(accessToken && { accessToken }),
     });
     return response.data;

@@ -19,6 +19,26 @@ export function useContadorNotificaciones() {
   });
 }
 
+export function useMarcarLeida() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) => notificacionesApi.marcarLeida(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['notificaciones'] });
+    },
+  });
+}
+
+export function useMarcarTodasLeidas() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: () => notificacionesApi.marcarTodasLeidas(),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['notificaciones'] });
+    },
+  });
+}
+
 export function useEnviarNotificacion() {
   const queryClient = useQueryClient();
   return useMutation({

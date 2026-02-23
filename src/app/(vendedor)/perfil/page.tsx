@@ -1,7 +1,7 @@
 'use client';
 
 import { useRouter } from 'next/navigation';
-import { LogOut, User, Shield, Package, Loader2 } from 'lucide-react';
+import { LogOut, User, Shield, Package, Loader2, CheckCircle2, XCircle } from 'lucide-react';
 import { toast } from 'sonner';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -18,18 +18,15 @@ import { EstadoEquipamiento } from '@/types/enums';
 export default function PerfilPage() {
   const router = useRouter();
   const { data: usuario, isLoading: loadingUser } = useCurrentUser();
-  const { data: equipamiento, isLoading: loadingEquip, error: equipError } = useMiEquipamiento();
+  const { data: equipamiento, isLoading: loadingEquip } = useMiEquipamiento();
   const solicitarEquip = useSolicitarEquipamiento();
   const logout = useAuthStore((s) => s.logout);
-  const refreshToken = useAuthStore((s) => s.refreshToken);
   const accessToken = useAuthStore((s) => s.accessToken);
 
   const handleLogout = async () => {
     try {
-      if (refreshToken) {
-        // BUG-010 FIX: pass accessToken so the server blacklists it immediately
-        await authApi.logout(refreshToken, accessToken ?? undefined);
-      }
+      // refreshToken viaja en cookie HttpOnly — solo pasamos accessToken para blacklistarlo
+      await authApi.logout(accessToken ?? undefined);
     } catch {
       // ignore logout API errors
     }
@@ -38,9 +35,13 @@ export default function PerfilPage() {
     router.push('/login');
   };
 
-  const handleSolicitarEquipamiento = async () => {
+  const DEPOSITO = Number(process.env.NEXT_PUBLIC_DEPOSITO_EQUIPAMIENTO ?? 49990);
+  const MENSUALIDAD_CON = Number(process.env.NEXT_PUBLIC_MENSUALIDAD_CON_DEPOSITO ?? 9990);
+  const MENSUALIDAD_SIN = Number(process.env.NEXT_PUBLIC_MENSUALIDAD_SIN_DEPOSITO ?? 19990);
+
+  const handleSolicitarEquipamiento = async (tieneDeposito: boolean) => {
     try {
-      await solicitarEquip.mutateAsync({ tieneDeposito: true });
+      await solicitarEquip.mutateAsync({ tieneDeposito });
       toast.success('Equipamiento solicitado exitosamente');
     } catch (err) {
       const message =
@@ -50,7 +51,7 @@ export default function PerfilPage() {
     }
   };
 
-  const noEquipamiento = !equipamiento && !loadingEquip && equipError;
+  const noEquipamiento = !equipamiento && !loadingEquip;
 
   return (
     <div className="space-y-4">
@@ -123,20 +124,68 @@ export default function PerfilPage() {
           {loadingEquip ? (
             <Skeleton className="h-20 w-full" />
           ) : noEquipamiento ? (
-            <div className="text-center space-y-3 py-2">
-              <p className="text-sm text-muted-foreground">
-                No tienes equipamiento asignado
+            <div className="space-y-3 py-1">
+              <p className="text-sm text-muted-foreground text-center">
+                Elige una opción para solicitar equipamiento:
               </p>
-              <Button
-                size="sm"
-                onClick={handleSolicitarEquipamiento}
-                disabled={solicitarEquip.isPending}
-              >
-                {solicitarEquip.isPending && (
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                )}
-                Solicitar Equipamiento
-              </Button>
+              <div className="grid grid-cols-2 gap-3">
+                {/* Con depósito */}
+                <div className="rounded-lg border p-3 space-y-2">
+                  <p className="text-sm font-semibold">Con depósito</p>
+                  <div className="space-y-1 text-xs text-muted-foreground">
+                    <div className="flex justify-between">
+                      <span>Depósito inicial</span>
+                      <span className="font-medium text-foreground">{formatCOP(DEPOSITO)}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span>Mensualidad</span>
+                      <span className="font-medium text-foreground">{formatCOP(MENSUALIDAD_CON)}/mes</span>
+                    </div>
+                  </div>
+                  <Button
+                    size="sm"
+                    className="w-full"
+                    onClick={() => handleSolicitarEquipamiento(true)}
+                    disabled={solicitarEquip.isPending}
+                  >
+                    {solicitarEquip.isPending ? (
+                      <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                    ) : (
+                      <CheckCircle2 className="h-3.5 w-3.5 mr-1" />
+                    )}
+                    Solicitar
+                  </Button>
+                </div>
+
+                {/* Sin depósito */}
+                <div className="rounded-lg border p-3 space-y-2">
+                  <p className="text-sm font-semibold">Sin depósito</p>
+                  <div className="space-y-1 text-xs text-muted-foreground">
+                    <div className="flex justify-between">
+                      <span>Depósito inicial</span>
+                      <span className="font-medium text-foreground">$0</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span>Mensualidad</span>
+                      <span className="font-medium text-foreground">{formatCOP(MENSUALIDAD_SIN)}/mes</span>
+                    </div>
+                  </div>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="w-full"
+                    onClick={() => handleSolicitarEquipamiento(false)}
+                    disabled={solicitarEquip.isPending}
+                  >
+                    {solicitarEquip.isPending ? (
+                      <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                    ) : (
+                      <XCircle className="h-3.5 w-3.5 mr-1" />
+                    )}
+                    Solicitar
+                  </Button>
+                </div>
+              </div>
             </div>
           ) : equipamiento ? (
             <div className="space-y-2 text-sm">
@@ -194,13 +243,9 @@ export default function PerfilPage() {
 
       {/* Actions */}
       <div className="space-y-2">
-        <Button
-          variant="outline"
-          className="w-full justify-start"
-          onClick={() => router.push('/cambiar-password')}
-        >
-          Cambiar Contraseña
-        </Button>
+        <p className="text-xs text-muted-foreground text-center px-2">
+          Para cambiar tu contraseña, contacta directamente al administrador.
+        </p>
         <Button
           variant="destructive"
           className="w-full justify-start"

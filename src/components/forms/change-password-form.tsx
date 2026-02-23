@@ -50,7 +50,7 @@ export function ChangePasswordForm() {
 
       toast.success('Contraseña cambiada exitosamente');
 
-      // Update in-memory store so middleware/guards see the change immediately
+      // Update in-memory store so middleware (proxy)/guards see the change immediately
       updateUser({ requiereCambioPassword: false });
 
       // Update cookie to reflect password change

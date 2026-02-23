@@ -6,6 +6,9 @@ const apiClient = axios.create({
   headers: {
     'Content-Type': 'application/json',
   },
+  // withCredentials: true envía la HttpOnly cookie 'rt' automáticamente en cada request
+  // Necesario para que el browser incluya cookies en requests cross-origin (dev: puertos distintos)
+  withCredentials: true,
 });
 
 // BUG-001 FIX: Shared proactive-refresh promise so all concurrent requests on
@@ -19,21 +22,21 @@ apiClient.interceptors.request.use(async (config: InternalAxiosRequestConfig) =>
     return config;
   }
 
-  const { accessToken, refreshToken } = useAuthStore.getState();
+  const { accessToken, isAuthenticated } = useAuthStore.getState();
 
   if (accessToken) {
     config.headers.Authorization = `Bearer ${accessToken}`;
     return config;
   }
 
-  // No accessToken (e.g. page reload — accessToken is not persisted) but we
-  // have a refreshToken: refresh proactively so requests don't need a 401 round-trip.
-  if (refreshToken) {
+  // No accessToken (page reload — accessToken no se persiste) pero isAuthenticated=true en store.
+  // El refreshToken está en la HttpOnly cookie 'rt' — el browser la envía automáticamente.
+  if (isAuthenticated) {
     if (!proactiveRefreshPromise) {
       proactiveRefreshPromise = axios
-        .post(`${process.env.NEXT_PUBLIC_API_URL}/auth/refresh`, { refreshToken })
+        .post(`${process.env.NEXT_PUBLIC_API_URL}/auth/refresh`, {}, { withCredentials: true })
         .then((res) => {
-          useAuthStore.getState().updateTokens(res.data.accessToken, res.data.refreshToken);
+          useAuthStore.getState().updateTokens(res.data.accessToken);
           return res.data.accessToken as string;
         })
         .catch(() => {
@@ -89,10 +92,11 @@ apiClient.interceptors.response.use(
       return Promise.reject(error);
     }
 
-    // Don't try to refresh if this was already a refresh request
-    if (originalRequest.url?.includes('/auth/refresh')) {
-      useAuthStore.getState().logout();
-      redirectToLogin();
+    // Don't try to refresh for auth endpoints — propagate the error as-is
+    if (
+      originalRequest.url?.includes('/auth/refresh') ||
+      originalRequest.url?.includes('/auth/login')
+    ) {
       return Promise.reject(error);
     }
 
@@ -112,20 +116,16 @@ apiClient.interceptors.response.use(
     isRefreshing = true;
 
     try {
-      const refreshToken = useAuthStore.getState().refreshToken;
-      if (!refreshToken) {
-        throw new Error('No refresh token');
-      }
-
+      // El refreshToken está en la cookie HttpOnly — no hace falta enviarlo en el body
       const { data } = await axios.post(
         `${process.env.NEXT_PUBLIC_API_URL}/auth/refresh`,
-        { refreshToken },
+        {},
+        { withCredentials: true },
       );
 
       const newAccessToken = data.accessToken;
-      const newRefreshToken = data.refreshToken;
 
-      useAuthStore.getState().updateTokens(newAccessToken, newRefreshToken);
+      useAuthStore.getState().updateTokens(newAccessToken);
 
       originalRequest.headers.Authorization = `Bearer ${newAccessToken}`;
       processQueue(null, newAccessToken);

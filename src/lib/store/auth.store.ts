@@ -7,7 +7,7 @@ import type { UserInfo, AuthResponse } from '@/types/auth.types';
 interface AuthState {
   user: UserInfo | null;
   accessToken: string | null;
-  refreshToken: string | null;
+  // refreshToken eliminado — ahora se almacena en HttpOnly cookie (no accesible desde JS)
   isAuthenticated: boolean;
   isHydrated: boolean;
 }
@@ -15,7 +15,7 @@ interface AuthState {
 interface AuthActions {
   login: (response: AuthResponse) => void;
   logout: () => void;
-  updateTokens: (accessToken: string, refreshToken: string) => void;
+  updateTokens: (accessToken: string) => void;
   updateUser: (partial: Partial<UserInfo>) => void;
   setHydrated: () => void;
 }
@@ -25,7 +25,6 @@ export const useAuthStore = create<AuthState & AuthActions>()(
     (set) => ({
       user: null,
       accessToken: null,
-      refreshToken: null,
       isAuthenticated: false,
       isHydrated: false,
 
@@ -33,7 +32,7 @@ export const useAuthStore = create<AuthState & AuthActions>()(
         set({
           user: response.user,
           accessToken: response.accessToken,
-          refreshToken: response.refreshToken,
+          // refreshToken viene en cookie HttpOnly — el browser lo guarda automáticamente
           isAuthenticated: true,
         }),
 
@@ -41,12 +40,10 @@ export const useAuthStore = create<AuthState & AuthActions>()(
         set({
           user: null,
           accessToken: null,
-          refreshToken: null,
           isAuthenticated: false,
         }),
 
-      updateTokens: (accessToken: string, refreshToken: string) =>
-        set({ accessToken, refreshToken }),
+      updateTokens: (accessToken: string) => set({ accessToken }),
 
       updateUser: (partial: Partial<UserInfo>) =>
         set((state) => ({
@@ -59,7 +56,7 @@ export const useAuthStore = create<AuthState & AuthActions>()(
       name: 'trabix-auth',
       partialize: (state) => ({
         user: state.user,
-        refreshToken: state.refreshToken,
+        // refreshToken ya no se persiste en localStorage — está en HttpOnly cookie
         isAuthenticated: state.isAuthenticated,
       }),
       onRehydrateStorage: () => (state) => {

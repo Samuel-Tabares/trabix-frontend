@@ -45,7 +45,7 @@ export function LoginForm() {
 
       login(response);
 
-      // Set cookie for middleware — URL-encoded to handle special chars in user data,
+      // Set cookie for middleware (proxy) — URL-encoded to handle special chars in user data,
       // SameSite=Strict to block cross-site request forgery.
       document.cookie = `trabix-auth=${encodeURIComponent(JSON.stringify({
         state: {
@@ -68,7 +68,7 @@ export function LoginForm() {
         if (err.response?.status === 401) {
           setError('Cédula o contraseña incorrecta');
         } else if (err.response?.status === 403) {
-          setError('Tu cuenta está bloqueada. Contacta al administrador.');
+          setError(apiError?.message ?? 'Tu cuenta está bloqueada. Contacta al administrador.');
         } else if (err.response?.status === 429) {
           setError('Demasiados intentos. Intenta de nuevo más tarde.');
         } else {

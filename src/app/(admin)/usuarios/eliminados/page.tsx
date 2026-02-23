@@ -46,7 +46,7 @@ export default function UsuariosEliminadosPage() {
 
       <DataTable
         columns={columns}
-        data={data ?? []}
+        data={data?.data ?? []}
         isLoading={isLoading}
         emptyMessage="No hay usuarios eliminados"
       />

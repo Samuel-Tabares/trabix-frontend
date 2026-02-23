@@ -39,7 +39,8 @@ export interface QueryVentasMayorParams {
 }
 
 export interface RegistrarVentaMayorRequest {
-  cantidadUnidades: number;
+    vendedorId: string;
+    cantidadUnidades: number;
   conLicor: boolean;
   modalidad: ModalidadVentaMayor;
 }
