@@ -10,6 +10,7 @@ import { EstadoBadge } from '@/components/shared/estado-badge';
 import { useMisLotes } from '@/lib/hooks/use-lotes';
 import { useVentas } from '@/lib/hooks/use-ventas';
 import { useCuadres } from '@/lib/hooks/use-cuadres';
+import { useMiniCuadres } from '@/lib/hooks/use-mini-cuadres';
 import { useAuthStore } from '@/lib/store/auth.store';
 import { formatCOP } from '@/lib/utils/format';
 import { EstadoLote } from '@/types/enums';
@@ -32,6 +33,7 @@ export default function InicioPage() {
     estado: 'PENDIENTE' as never,
     take: 1,
   });
+  const { data: miniCuadres } = useMiniCuadres();
 
   const loteActivo = lotesData?.data?.[0];
   const tandaActiva = loteActivo?.tandas?.find(
@@ -39,6 +41,7 @@ export default function InicioPage() {
   );
   const ultimasVentas = ventasData?.data ?? [];
   const cuadrePendiente = cuadresData?.data?.[0];
+  const miniCuadrePendiente = miniCuadres?.find((mc) => mc.estado === 'PENDIENTE');
 
   return (
     <div className="space-y-4">
@@ -123,6 +126,30 @@ export default function InicioPage() {
           </CardContent>
         </Card>
       ) : null}
+
+      {/* Mini-cuadre pendiente */}
+      {!cuadresLoading && miniCuadrePendiente && (
+        <Card className="border-yellow-300 bg-yellow-50">
+          <CardContent className="p-4">
+            <div className="flex items-start gap-3">
+              <AlertCircle className="h-5 w-5 text-yellow-600 mt-0.5 shrink-0" />
+              <div className="flex-1">
+                <p className="text-sm font-medium text-yellow-800">
+                  Cierre de Lote Pendiente
+                </p>
+                <p className="text-sm text-yellow-700">
+                  Debes transferir {formatCOP(miniCuadrePendiente.montoFinal)} para cerrar tu lote
+                </p>
+              </div>
+              <Link href={`/mis-cuadres/mini/${miniCuadrePendiente.id}`}>
+                <Button variant="outline" size="sm">
+                  Ver
+                </Button>
+              </Link>
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       {/* Últimas ventas */}
       <div>

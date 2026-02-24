@@ -9,8 +9,11 @@ import { EstadoBadge } from '@/components/shared/estado-badge';
 import { EmptyState } from '@/components/shared/empty-state';
 import { ListSkeleton } from '@/components/shared/loading-skeleton';
 import { useCuadres } from '@/lib/hooks/use-cuadres';
+import { useMiniCuadres } from '@/lib/hooks/use-mini-cuadres';
 import { formatCOP, formatDate } from '@/lib/utils/format';
 import { EstadoCuadre } from '@/types/enums';
+import type { Cuadre } from '@/types/cuadre.types';
+import type { MiniCuadre } from '@/types/mini-cuadre.types';
 
 const FILTROS = [
   { label: 'Todos', value: undefined },
@@ -18,10 +21,57 @@ const FILTROS = [
   { label: 'Exitosos', value: EstadoCuadre.EXITOSO },
 ] as const;
 
+type UnifiedItem = {
+  id: string;
+  tipo: 'cuadre' | 'mini';
+  label: string;
+  monto: number;
+  estado: string;
+  fechaPendiente: string | null;
+  href: string;
+};
+
+function cuadreToItem(c: Cuadre): UnifiedItem {
+  return {
+    id: c.id,
+    tipo: 'cuadre',
+    label: `Tanda #${c.tanda.numero}`,
+    monto: c.montoEsperado,
+    estado: c.estado,
+    fechaPendiente: c.fechaPendiente,
+    href: `/mis-cuadres/${c.id}`,
+  };
+}
+
+function miniCuadreToItem(mc: MiniCuadre): UnifiedItem {
+  return {
+    id: mc.id,
+    tipo: 'mini',
+    label: 'Cierre de Lote',
+    monto: mc.montoFinal,
+    estado: mc.estado,
+    fechaPendiente: mc.fechaPendiente,
+    href: `/mis-cuadres/mini/${mc.id}`,
+  };
+}
+
 export default function MisCuadresPage() {
   const [filtro, setFiltro] = useState<EstadoCuadre | undefined>(undefined);
   const { data, isLoading } = useCuadres({ estado: filtro, take: 50 });
-  const cuadres = data?.data ?? [];
+  const { data: miniCuadres, isLoading: miniLoading } = useMiniCuadres();
+
+  const cuadreItems = (data?.data ?? []).map(cuadreToItem);
+  const miniItems = (miniCuadres ?? [])
+    .filter((mc) => !filtro || (mc.estado as string) === (filtro as string))
+    .map(miniCuadreToItem);
+
+  const allItems: UnifiedItem[] = [...cuadreItems, ...miniItems].sort((a, b) => {
+    const dateA = a.fechaPendiente ? new Date(a.fechaPendiente).getTime() : 0;
+    const dateB = b.fechaPendiente ? new Date(b.fechaPendiente).getTime() : 0;
+    return dateB - dateA;
+  });
+
+  const loading = isLoading || miniLoading;
 
   return (
     <div className="space-y-4">
@@ -41,9 +91,9 @@ export default function MisCuadresPage() {
         ))}
       </div>
 
-      {isLoading ? (
+      {loading ? (
         <ListSkeleton count={5} />
-      ) : cuadres.length === 0 ? (
+      ) : allItems.length === 0 ? (
         <EmptyState
           icon={<ClipboardCheck className="h-12 w-12" />}
           title="Sin cuadres"
@@ -51,24 +101,22 @@ export default function MisCuadresPage() {
         />
       ) : (
         <div className="space-y-2">
-          {cuadres.map((cuadre) => (
-            <Link key={cuadre.id} href={`/mis-cuadres/${cuadre.id}`}>
+          {allItems.map((item) => (
+            <Link key={`${item.tipo}-${item.id}`} href={item.href}>
               <Card className="hover:bg-accent/50 transition-colors">
                 <CardContent className="p-4">
                   <div className="flex items-center justify-between">
                     <div>
-                      <p className="font-medium">
-                        Tanda #{cuadre.tanda.numero}
-                      </p>
+                      <p className="font-medium">{item.label}</p>
                       <p className="text-sm text-muted-foreground">
-                        Esperado: {formatCOP(cuadre.montoEsperado)}
+                        Esperado: {formatCOP(item.monto)}
                       </p>
                     </div>
                     <div className="text-right space-y-1">
-                      <EstadoBadge estado={cuadre.estado} />
-                      {cuadre.fechaPendiente && (
+                      <EstadoBadge estado={item.estado} />
+                      {item.fechaPendiente && (
                         <p className="text-xs text-muted-foreground">
-                          {formatDate(cuadre.fechaPendiente)}
+                          {formatDate(item.fechaPendiente)}
                         </p>
                       )}
                     </div>

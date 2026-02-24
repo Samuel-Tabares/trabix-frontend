@@ -3,11 +3,20 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { miniCuadresApi } from '@/lib/api/mini-cuadres.api';
 
+export function useMiniCuadres() {
+  return useQuery({
+    queryKey: ['mini-cuadres', 'list'],
+    queryFn: () => miniCuadresApi.listar(),
+    retry: false,
+  });
+}
+
 export function useMiniCuadrePorLote(loteId: string) {
   return useQuery({
     queryKey: ['mini-cuadres', 'lote', loteId],
     queryFn: () => miniCuadresApi.obtenerPorLote(loteId),
     enabled: !!loteId,
+    retry: false,
   });
 }
 
@@ -25,6 +34,7 @@ export function useConfirmarMiniCuadre() {
     mutationFn: (id: string) => miniCuadresApi.confirmar(id),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['mini-cuadres'] });
+      queryClient.invalidateQueries({ queryKey: ['lotes'] });
     },
   });
 }

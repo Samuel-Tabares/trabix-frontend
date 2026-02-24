@@ -12,6 +12,7 @@ import { EstadoBadge } from '@/components/shared/estado-badge';
 import { ConfirmDialog } from '@/components/shared/confirm-dialog';
 import { useLote, useResumenFinanciero, useActivarLote, useCancelarLote } from '@/lib/hooks/use-lotes';
 import { useConfirmarEntregaTanda } from '@/lib/hooks/use-tandas';
+import { useMiniCuadrePorLote, useConfirmarMiniCuadre } from '@/lib/hooks/use-mini-cuadres';
 import { formatCOP, formatDate } from '@/lib/utils/format';
 import { toast } from 'sonner';
 
@@ -22,6 +23,8 @@ export default function LoteDetallePage({ params }: { params: Promise<{ id: stri
   const activar = useActivarLote();
   const cancelar = useCancelarLote();
   const confirmarEntrega = useConfirmarEntregaTanda();
+  const { data: miniCuadre } = useMiniCuadrePorLote(id);
+  const confirmarMiniCuadre = useConfirmarMiniCuadre();
 
   const [confirmAction, setConfirmAction] = useState<'activar' | 'cancelar' | null>(null);
   const [confirmTandaId, setConfirmTandaId] = useState<string | null>(null);
@@ -93,6 +96,51 @@ export default function LoteDetallePage({ params }: { params: Promise<{ id: stri
           ))}
         </CardContent>
       </Card>
+
+      {miniCuadre && miniCuadre.estado !== 'INACTIVO' && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-base flex items-center justify-between">
+              Mini-Cuadre
+              <EstadoBadge estado={miniCuadre.estado} />
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-3 text-sm">
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <p className="text-muted-foreground">Monto Final</p>
+                <p className="font-semibold">{formatCOP(miniCuadre.montoFinal)}</p>
+              </div>
+              {miniCuadre.fechaPendiente && (
+                <div>
+                  <p className="text-muted-foreground">Desde</p>
+                  <p>{formatDate(miniCuadre.fechaPendiente)}</p>
+                </div>
+              )}
+              {miniCuadre.fechaExitoso && (
+                <div>
+                  <p className="text-muted-foreground">Confirmado</p>
+                  <p>{formatDate(miniCuadre.fechaExitoso)}</p>
+                </div>
+              )}
+            </div>
+            {miniCuadre.estado === 'PENDIENTE' && (
+              <Button
+                size="sm"
+                onClick={() =>
+                  confirmarMiniCuadre.mutate(miniCuadre.id, {
+                    onSuccess: () => toast.success('Mini-cuadre confirmado. Lote finalizado.'),
+                    onError: () => toast.error('Error al confirmar mini-cuadre'),
+                  })
+                }
+                disabled={confirmarMiniCuadre.isPending}
+              >
+                {confirmarMiniCuadre.isPending ? 'Confirmando...' : 'Confirmar Mini-Cuadre'}
+              </Button>
+            )}
+          </CardContent>
+        </Card>
+      )}
 
       {lote.estado === 'CREADO' && (
         <div className="flex gap-2">
