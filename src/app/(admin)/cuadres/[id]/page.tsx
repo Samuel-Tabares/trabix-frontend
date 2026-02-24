@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Separator } from '@/components/ui/separator';
 import { Skeleton } from '@/components/ui/skeleton';
 import { EstadoBadge } from '@/components/shared/estado-badge';
 import { useCuadre, useConfirmarCuadre } from '@/lib/hooks/use-cuadres';
@@ -18,15 +19,36 @@ export default function CuadreDetallePage({ params }: { params: Promise<{ id: st
   const { data: cuadre, isLoading } = useCuadre(id);
   const confirmar = useConfirmarCuadre();
   const [montoRecibido, setMontoRecibido] = useState('');
+  const [montoError, setMontoError] = useState('');
 
   if (isLoading) return <div className="space-y-4"><Skeleton className="h-8 w-48" /><Skeleton className="h-60 w-full" /></div>;
   if (!cuadre) return <p className="text-muted-foreground">Cuadre no encontrado</p>;
 
+  const validateMonto = (value: string) => {
+    const n = Number(value);
+    if (!value) return '';
+    if (n <= 0) return 'El monto debe ser mayor a 0';
+    if (n > cuadre.montoFaltante) return `No puede superar el monto pendiente (${formatCOP(cuadre.montoFaltante)})`;
+    return '';
+  };
+
   const handleConfirmar = () => {
+    const error = validateMonto(montoRecibido);
+    if (error) { setMontoError(error); return; }
+    const monto = Number(montoRecibido);
     confirmar.mutate(
-      { id, montoRecibido: Number(montoRecibido) },
+      { id, montoRecibido: monto },
       {
-        onSuccess: () => toast.success('Cuadre confirmado'),
+        onSuccess: (data: any) => {
+          const estaCompleto = data?.estado === 'EXITOSO';
+          if (estaCompleto) {
+            toast.success('Cuadre confirmado exitosamente', { description: `Pago total: ${formatCOP(data.montoRecibido ?? monto)}` });
+          } else {
+            toast.success('Abono registrado', { description: `Se abonaron ${formatCOP(monto)} — falta ${formatCOP((cuadre.montoFaltante - monto))}` });
+          }
+          setMontoRecibido('');
+          setMontoError('');
+        },
         onError: () => toast.error('Error al confirmar cuadre'),
       },
     );
@@ -57,17 +79,97 @@ export default function CuadreDetallePage({ params }: { params: Promise<{ id: st
         </CardContent>
       </Card>
 
+      {cuadre.desglose && (
+        <Card>
+          <CardHeader><CardTitle className="text-base">Desglose del cobro</CardTitle></CardHeader>
+          <CardContent className="space-y-1.5 text-sm">
+            {cuadre.desglose.inversionAdmin > 0 && (
+              <div className="flex items-center justify-between">
+                <span className="text-muted-foreground">Inversión admin</span>
+                <span className="font-medium">{formatCOP(cuadre.desglose.inversionAdmin)}</span>
+              </div>
+            )}
+            {cuadre.desglose.gananciasAdmin > 0 && (
+              <div className="flex items-center justify-between">
+                <span className="text-muted-foreground">Ganancias admin</span>
+                <span className="font-medium">{formatCOP(cuadre.desglose.gananciasAdmin)}</span>
+              </div>
+            )}
+            {cuadre.desglose.mensualidades > 0 && (
+              <div className="flex items-center justify-between">
+                <span className="text-muted-foreground">Mensualidades equipamiento</span>
+                <span className="font-medium text-amber-700">{formatCOP(cuadre.desglose.mensualidades)}</span>
+              </div>
+            )}
+            {cuadre.desglose.deudaDano > 0 && (
+              <div className="flex items-center justify-between">
+                <span className="text-muted-foreground">Deuda por daño</span>
+                <span className="font-medium text-red-600">{formatCOP(cuadre.desglose.deudaDano)}</span>
+              </div>
+            )}
+            {cuadre.desglose.deudaPerdida > 0 && (
+              <div className="flex items-center justify-between">
+                <span className="text-muted-foreground">Deuda por pérdida</span>
+                <span className="font-medium text-red-600">{formatCOP(cuadre.desglose.deudaPerdida)}</span>
+              </div>
+            )}
+            <Separator />
+            <div className="flex items-center justify-between font-semibold">
+              <span>Total esperado</span>
+              <span>{formatCOP(cuadre.montoEsperado)}</span>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {cuadre.estado === 'EXITOSO' && cuadre.fechaExitoso && (
+        <Card>
+          <CardHeader><CardTitle className="text-base">Registro de Pago</CardTitle></CardHeader>
+          <CardContent className="space-y-2 text-sm">
+            <div className="flex items-center justify-between">
+              <span className="text-muted-foreground">Monto confirmado</span>
+              <span className="font-semibold text-green-700">{formatCOP(cuadre.montoRecibido)}</span>
+            </div>
+            {cuadre.montoFaltante > 0 && (
+              <div className="flex items-center justify-between">
+                <span className="text-muted-foreground">Monto faltante</span>
+                <span className="font-semibold text-red-600">{formatCOP(cuadre.montoFaltante)}</span>
+              </div>
+            )}
+            <div className="flex items-center justify-between">
+              <span className="text-muted-foreground">Fecha de confirmación</span>
+              <span className="font-medium">{formatDate(cuadre.fechaExitoso)}</span>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
       {cuadre.estado === 'PENDIENTE' && (
         <Card>
           <CardHeader><CardTitle className="text-base">Confirmar Cuadre</CardTitle></CardHeader>
           <CardContent className="space-y-3">
+            <Separator />
             <div className="space-y-2">
-              <Label>Monto Recibido</Label>
-              <Input type="number" step="0.01" value={montoRecibido} onChange={(e) => setMontoRecibido(e.target.value)} placeholder={cuadre.montoEsperadoAjustado.toString()} />
+              <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Monto recibido del vendedor</p>
+              <div className="flex items-end gap-2">
+                <div className="space-y-1 flex-1">
+                  <Label className="text-xs">Monto (máx. {formatCOP(cuadre.montoFaltante)})</Label>
+                  <Input
+                    type="number"
+                    step="1000"
+                    min="1"
+                    max={cuadre.montoFaltante}
+                    value={montoRecibido}
+                    onChange={(e) => { setMontoRecibido(e.target.value); setMontoError(validateMonto(e.target.value)); }}
+                    placeholder="0"
+                  />
+                  {montoError && <p className="text-xs text-red-500">{montoError}</p>}
+                </div>
+                <Button size="sm" onClick={handleConfirmar} disabled={confirmar.isPending || !montoRecibido || !!montoError}>
+                  {confirmar.isPending ? 'Confirmando...' : 'Confirmar'}
+                </Button>
+              </div>
             </div>
-            <Button onClick={handleConfirmar} disabled={confirmar.isPending || !montoRecibido}>
-              {confirmar.isPending ? 'Confirmando...' : 'Confirmar'}
-            </Button>
           </CardContent>
         </Card>
       )}

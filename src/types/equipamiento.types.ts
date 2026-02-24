@@ -1,5 +1,15 @@
 import { EstadoEquipamiento } from './enums';
 
+export type TipoAbonoEquipamiento = 'DANO' | 'PERDIDA' | 'MENSUALIDAD';
+
+export interface AbonoEquipamiento {
+  id: string;
+  tipo: TipoAbonoEquipamiento;
+  monto: number;
+  cuadreId: string | null;
+  fecha: string;
+}
+
 export interface VendedorInfo {
   id: string;
   nombre: string;
@@ -17,6 +27,8 @@ export interface Equipamiento {
   depositoPagado: number | null;
   mensualidadActual: number;
   ultimaMensualidadPagada: string | null;
+  neveraDanada: boolean;
+  pijamaDanada: boolean;
   deudaDano: number;
   deudaPerdida: number;
   fechaSolicitud: string;
@@ -32,6 +44,7 @@ export interface Equipamiento {
   deudaTotal: number;
   deudaTotalConMensualidades: number;
   tieneDeuda: boolean;
+  abonos?: AbonoEquipamiento[];
 }
 
 export interface SolicitarEquipamientoRequest {

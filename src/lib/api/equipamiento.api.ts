@@ -54,8 +54,13 @@ export const equipamientoApi = {
     return response.data;
   },
 
-  pagarDeuda: async (id: string, data: PagarDeudaRequest): Promise<Equipamiento> => {
-    const response = await apiClient.post<Equipamiento>(`/equipamiento/${id}/pagar-deuda`, data);
+  pagarDeudaDano: async (id: string, data: PagarDeudaRequest): Promise<Equipamiento> => {
+    const response = await apiClient.post<Equipamiento>(`/equipamiento/${id}/pagar-deuda-dano`, data);
+    return response.data;
+  },
+
+  pagarDeudaPerdida: async (id: string, data: PagarDeudaRequest): Promise<Equipamiento> => {
+    const response = await apiClient.post<Equipamiento>(`/equipamiento/${id}/pagar-deuda-perdida`, data);
     return response.data;
   },
 

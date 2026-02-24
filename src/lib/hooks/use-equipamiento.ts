@@ -92,11 +92,22 @@ export function usePagarMensualidad() {
   });
 }
 
-export function usePagarDeuda() {
+export function usePagarDeudaDano() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: ({ id, data }: { id: string; data: PagarDeudaRequest }) =>
-      equipamientoApi.pagarDeuda(id, data),
+      equipamientoApi.pagarDeudaDano(id, data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['equipamiento'] });
+    },
+  });
+}
+
+export function usePagarDeudaPerdida() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, data }: { id: string; data: PagarDeudaRequest }) =>
+      equipamientoApi.pagarDeudaPerdida(id, data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['equipamiento'] });
     },

@@ -1,5 +1,13 @@
 import { EstadoCuadre, ConceptoCuadre } from './enums';
 
+export interface DesgloseCuadre {
+  inversionAdmin: number;
+  gananciasAdmin: number;
+  mensualidades: number;
+  deudaDano: number;
+  deudaPerdida: number;
+}
+
 export interface TandaCuadre {
   id: string;
   loteId: string;
@@ -25,6 +33,7 @@ export interface Cuadre {
   fechaExitoso: string | null;
   tanda: TandaCuadre;
   fueCerradoPorMayor: boolean;
+  desglose?: DesgloseCuadre | null;
 }
 
 export interface CuadresPaginados {

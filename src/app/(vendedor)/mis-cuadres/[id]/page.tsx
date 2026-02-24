@@ -66,6 +66,52 @@ export default function CuadreDetallePage({
         </CardContent>
       </Card>
 
+      {/* Desglose del monto esperado */}
+      {cuadre.desglose && (
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-base">Desglose del cobro</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-1.5">
+            {cuadre.desglose.inversionAdmin > 0 && (
+              <div className="flex items-center justify-between text-sm">
+                <span className="text-muted-foreground">Inversión admin</span>
+                <span className="font-medium">{formatCOP(cuadre.desglose.inversionAdmin)}</span>
+              </div>
+            )}
+            {cuadre.desglose.gananciasAdmin > 0 && (
+              <div className="flex items-center justify-between text-sm">
+                <span className="text-muted-foreground">Ganancias admin</span>
+                <span className="font-medium">{formatCOP(cuadre.desglose.gananciasAdmin)}</span>
+              </div>
+            )}
+            {cuadre.desglose.mensualidades > 0 && (
+              <div className="flex items-center justify-between text-sm">
+                <span className="text-muted-foreground">Mensualidades equipamiento</span>
+                <span className="font-medium text-amber-700">{formatCOP(cuadre.desglose.mensualidades)}</span>
+              </div>
+            )}
+            {cuadre.desglose.deudaDano > 0 && (
+              <div className="flex items-center justify-between text-sm">
+                <span className="text-muted-foreground">Deuda por daño</span>
+                <span className="font-medium text-red-600">{formatCOP(cuadre.desglose.deudaDano)}</span>
+              </div>
+            )}
+            {cuadre.desglose.deudaPerdida > 0 && (
+              <div className="flex items-center justify-between text-sm">
+                <span className="text-muted-foreground">Deuda por pérdida</span>
+                <span className="font-medium text-red-600">{formatCOP(cuadre.desglose.deudaPerdida)}</span>
+              </div>
+            )}
+            <Separator />
+            <div className="flex items-center justify-between text-sm font-semibold">
+              <span>Total esperado</span>
+              <span>{formatCOP(cuadre.montoEsperado)}</span>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
       {/* Montos */}
       <Card>
         <CardHeader className="pb-2">
