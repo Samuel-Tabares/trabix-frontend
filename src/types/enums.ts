@@ -103,8 +103,10 @@ export enum TipoTransaccionFondo {
   SALIDA = 'SALIDA',
 }
 
+/**
+ * Canal de notificación activo.
+ * En el futuro se pueden agregar: PUSH (Firebase/OneSignal), EMAIL, WHATSAPP (Business API), etc.
+ */
 export enum CanalNotificacion {
   WEBSOCKET = 'WEBSOCKET',
-  PUSH = 'PUSH',
-  WHATSAPP = 'WHATSAPP',
 }

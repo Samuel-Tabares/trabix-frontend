@@ -14,7 +14,6 @@ import {
 } from '@/components/ui/select';
 import { useEnviarNotificacion } from '@/lib/hooks/use-notificaciones';
 import { useUsuarios } from '@/lib/hooks/use-usuarios';
-import { TipoNotificacion, CanalNotificacion } from '@/types/enums';
 import { getApiError } from '@/lib/utils/errors';
 import { toast } from 'sonner';
 
@@ -24,21 +23,13 @@ export default function EnviarNotificacionPage() {
   const { data: usuarios } = useUsuarios({ take: 100 });
 
   const [usuarioId, setUsuarioId] = useState('');
-  const [tipo, setTipo] = useState<string>(TipoNotificacion.MANUAL);
-  const [canal, setCanal] = useState<string>(CanalNotificacion.WEBSOCKET);
   const [titulo, setTitulo] = useState('');
   const [mensaje, setMensaje] = useState('');
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     enviar.mutate(
-      {
-        usuarioId,
-        tipo: tipo as TipoNotificacion,
-        canal: canal as CanalNotificacion,
-        titulo: titulo || undefined,
-        mensaje: mensaje || undefined,
-      },
+      { usuarioId, titulo, mensaje },
       {
         onSuccess: () => {
           toast.success('Notificación enviada');
@@ -59,7 +50,7 @@ export default function EnviarNotificacionPage() {
       </div>
 
       <Card>
-        <CardHeader><CardTitle className="text-base">Datos</CardTitle></CardHeader>
+        <CardHeader><CardTitle className="text-base">Notificación manual</CardTitle></CardHeader>
         <CardContent>
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="space-y-2">
@@ -73,39 +64,15 @@ export default function EnviarNotificacionPage() {
                 </SelectContent>
               </Select>
             </div>
-            <div className="grid grid-cols-2 gap-3">
-              <div className="space-y-2">
-                <Label>Tipo</Label>
-                <Select value={tipo} onValueChange={setTipo}>
-                  <SelectTrigger><SelectValue /></SelectTrigger>
-                  <SelectContent>
-                    {Object.values(TipoNotificacion).map((t) => (
-                      <SelectItem key={t} value={t}>{t.replace(/_/g, ' ')}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="space-y-2">
-                <Label>Canal</Label>
-                <Select value={canal} onValueChange={setCanal}>
-                  <SelectTrigger><SelectValue /></SelectTrigger>
-                  <SelectContent>
-                    {Object.values(CanalNotificacion).map((c) => (
-                      <SelectItem key={c} value={c}>{c}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
+            <div className="space-y-2">
+              <Label>Título</Label>
+              <Input value={titulo} onChange={(e) => setTitulo(e.target.value)} placeholder="Ej: Información importante" required />
             </div>
             <div className="space-y-2">
-              <Label>Título (opcional)</Label>
-              <Input value={titulo} onChange={(e) => setTitulo(e.target.value)} />
+              <Label>Mensaje</Label>
+              <Textarea value={mensaje} onChange={(e) => setMensaje(e.target.value)} placeholder="Contenido de la notificación..." required />
             </div>
-            <div className="space-y-2">
-              <Label>Mensaje (opcional)</Label>
-              <Textarea value={mensaje} onChange={(e) => setMensaje(e.target.value)} placeholder="Contenido de la notificación..." />
-            </div>
-            <Button type="submit" disabled={enviar.isPending || !usuarioId}>
+            <Button type="submit" disabled={enviar.isPending || !usuarioId || !titulo || !mensaje}>
               {enviar.isPending ? 'Enviando...' : 'Enviar Notificación'}
             </Button>
           </form>

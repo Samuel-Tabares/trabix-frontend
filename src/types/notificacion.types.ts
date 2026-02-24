@@ -33,9 +33,7 @@ export interface QueryNotificacionesParams {
 
 export interface EnviarNotificacionRequest {
   usuarioId: string;
-  tipo: TipoNotificacion;
-  titulo?: string;
-  mensaje?: string;
+  titulo: string;
+  mensaje: string;
   datos?: Record<string, unknown>;
-  canal?: CanalNotificacion;
 }
