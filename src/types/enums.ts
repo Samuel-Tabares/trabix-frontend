@@ -28,11 +28,6 @@ export enum EstadoTanda {
   FINALIZADA = 'FINALIZADA',
 }
 
-export enum EstadoVenta {
-  PENDIENTE = 'PENDIENTE',
-  APROBADA = 'APROBADA',
-}
-
 export enum TipoVenta {
   PROMO = 'PROMO',
   UNIDAD = 'UNIDAD',

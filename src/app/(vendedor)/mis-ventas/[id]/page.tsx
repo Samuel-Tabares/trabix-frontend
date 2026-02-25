@@ -7,7 +7,6 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
 import { Skeleton } from '@/components/ui/skeleton';
-import { EstadoBadge } from '@/components/shared/estado-badge';
 import { useVenta } from '@/lib/hooks/use-ventas';
 import { formatCOP, formatDateTime } from '@/lib/utils/format';
 
@@ -47,7 +46,6 @@ export default function VentaDetallePage({
         <CardContent className="p-4 space-y-3">
           <div className="flex items-center justify-between">
             <span className="text-lg font-bold">{formatCOP(venta.montoTotal)}</span>
-            <EstadoBadge estado={venta.estado} />
           </div>
           <div className="flex items-center justify-between text-sm">
             <span className="text-muted-foreground">Total TRABIX</span>
@@ -61,12 +59,6 @@ export default function VentaDetallePage({
             <span className="text-muted-foreground">Fecha</span>
             <span>{formatDateTime(venta.fechaRegistro)}</span>
           </div>
-          {venta.fechaValidacion && (
-            <div className="flex items-center justify-between text-sm">
-              <span className="text-muted-foreground">Validada</span>
-              <span>{formatDateTime(venta.fechaValidacion)}</span>
-            </div>
-          )}
         </CardContent>
       </Card>
 

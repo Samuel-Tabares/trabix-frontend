@@ -5,7 +5,6 @@ import type {
   CreateVentaRequest,
   QueryVentasParams,
 } from '@/types/venta.types';
-import type { MessageResponse } from '@/types/api.types';
 
 export const ventasApi = {
   crear: async (data: CreateVentaRequest): Promise<Venta> => {
@@ -20,16 +19,6 @@ export const ventasApi = {
 
   obtener: async (id: string): Promise<Venta> => {
     const response = await apiClient.get<Venta>(`/ventas/${id}`);
-    return response.data;
-  },
-
-  aprobar: async (id: string): Promise<Venta> => {
-    const response = await apiClient.post<Venta>(`/ventas/${id}/aprobar`);
-    return response.data;
-  },
-
-  rechazar: async (id: string): Promise<MessageResponse> => {
-    const response = await apiClient.post<MessageResponse>(`/ventas/${id}/rechazar`);
     return response.data;
   },
 };

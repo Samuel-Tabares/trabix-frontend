@@ -1,26 +1,18 @@
 'use client';
 
-import { use, useState } from 'react';
+import { use } from 'react';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
 import { ArrowLeft } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
-import { EstadoBadge } from '@/components/shared/estado-badge';
-import { ConfirmDialog } from '@/components/shared/confirm-dialog';
 import { DataTable } from '@/components/shared/data-table';
-import { useVenta, useAprobarVenta, useRechazarVenta } from '@/lib/hooks/use-ventas';
+import { useVenta } from '@/lib/hooks/use-ventas';
 import { formatCOP, formatDate } from '@/lib/utils/format';
-import { toast } from 'sonner';
 
 export default function VentaDetallePage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
-  const router = useRouter();
   const { data: venta, isLoading } = useVenta(id);
-  const aprobar = useAprobarVenta();
-  const rechazar = useRechazarVenta();
-  const [confirmAction, setConfirmAction] = useState<'aprobar' | 'rechazar' | null>(null);
 
   if (isLoading) return <div className="space-y-4"><Skeleton className="h-8 w-48" /><Skeleton className="h-60 w-full" /></div>;
   if (!venta) return <p className="text-muted-foreground">Venta no encontrada</p>;
@@ -37,7 +29,6 @@ export default function VentaDetallePage({ params }: { params: Promise<{ id: str
       <div className="flex items-center gap-2">
         <Link href="/ventas"><Button variant="ghost" size="icon"><ArrowLeft className="h-4 w-4" /></Button></Link>
         <h1 className="text-2xl font-bold">Venta — {venta.cantidadTrabix} TRABIX</h1>
-        <EstadoBadge estado={venta.estado} />
       </div>
 
       {(venta.vendedorNombre || venta.vendedorTelefono) && (
@@ -70,39 +61,6 @@ export default function VentaDetallePage({ params }: { params: Promise<{ id: str
           <DataTable columns={detalleColumns} data={venta.detalles} emptyMessage="Sin detalles" />
         </CardContent>
       </Card>
-
-      {venta.estado === 'PENDIENTE' && (
-        <div className="flex gap-2">
-          <Button onClick={() => setConfirmAction('aprobar')}>Aprobar</Button>
-          <Button variant="destructive" onClick={() => setConfirmAction('rechazar')}>Rechazar</Button>
-        </div>
-      )}
-
-      <ConfirmDialog
-        open={!!confirmAction}
-        onOpenChange={(open) => { if (!open) setConfirmAction(null); }}
-        title={confirmAction === 'aprobar' ? 'Aprobar Venta' : 'Rechazar Venta'}
-        description={confirmAction === 'aprobar' ? '¿Aprobar esta venta?' : '¿Rechazar esta venta?'}
-        variant={confirmAction === 'rechazar' ? 'destructive' : 'default'}
-        confirmLabel={confirmAction === 'aprobar' ? 'Aprobar' : 'Rechazar'}
-        onConfirm={() => {
-          if (confirmAction === 'aprobar') {
-            aprobar.mutate(id, {
-              onSuccess: () => { toast.success('Venta aprobada'); setConfirmAction(null); },
-              onError: () => toast.error('Error al aprobar la venta'),
-            });
-          } else {
-            rechazar.mutate(id, {
-              onSuccess: () => {
-                toast.success('Venta eliminada');
-                router.push('/ventas');
-              },
-              onError: () => toast.error('Error al rechazar la venta'),
-            });
-          }
-        }}
-        isLoading={aprobar.isPending || rechazar.isPending}
-      />
     </div>
   );
 }

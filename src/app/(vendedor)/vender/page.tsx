@@ -7,6 +7,7 @@ import { toast } from 'sonner';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
+import { ConfirmDialog } from '@/components/shared/confirm-dialog';
 import { useCrearVenta } from '@/lib/hooks/use-ventas';
 import { getApiError } from '@/lib/utils/errors';
 import { TipoVenta } from '@/types/enums';
@@ -39,6 +40,7 @@ const pluralLabel = (tipo: TipoVenta, cantidad: number): string => {
 export default function VenderPage() {
   const router = useRouter();
   const crearVenta = useCrearVenta();
+  const [confirming, setConfirming] = useState(false);
 
   const [cantidades, setCantidades] = useState<Record<TipoVenta, number>>({
     [TipoVenta.PROMO]: 0,
@@ -60,7 +62,7 @@ export default function VenderPage() {
   );
   const hayAlgo = totalTrabix > 0;
 
-  const handleSubmit = async () => {
+  const handleConfirm = async () => {
     const detalles: DetalleVentaRequest[] = Object.entries(cantidades)
       .filter(([, cantidad]) => cantidad > 0)
       .map(([tipo, cantidad]) => ({
@@ -72,12 +74,12 @@ export default function VenderPage() {
 
     try {
       await crearVenta.mutateAsync({ detalles });
-      toast.success('Venta registrada exitosamente', {
-        description: 'Tu venta está pendiente de aprobación.',
-      });
+      toast.success('Venta registrada exitosamente');
       router.push('/mis-ventas');
     } catch (err) {
       toast.error(getApiError(err, 'Error al registrar la venta'));
+    } finally {
+      setConfirming(false);
     }
   };
 
@@ -150,7 +152,7 @@ export default function VenderPage() {
       <Button
         className="w-full h-12 text-base gap-2"
         disabled={!hayAlgo || crearVenta.isPending}
-        onClick={handleSubmit}
+        onClick={() => setConfirming(true)}
       >
         {crearVenta.isPending ? (
           <Loader2 className="h-4 w-4 animate-spin" />
@@ -159,6 +161,16 @@ export default function VenderPage() {
         )}
         Registrar Venta
       </Button>
+
+      <ConfirmDialog
+        open={confirming}
+        onOpenChange={setConfirming}
+        title="Confirmar venta"
+        description={`Vas a registrar ${totalTrabix} TRABIX. Esta acción se confirma inmediatamente y no tiene vuelta atrás.`}
+        confirmLabel="Confirmar"
+        onConfirm={handleConfirm}
+        isLoading={crearVenta.isPending}
+      />
 
       {/* Ventas al por mayor */}
       <Card className="border-dashed">

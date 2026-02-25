@@ -1,4 +1,4 @@
-import { EstadoVenta, TipoVenta } from './enums';
+import { TipoVenta } from './enums';
 
 export interface DetalleVentaRequest {
   tipo: TipoVenta;
@@ -26,13 +26,11 @@ export interface Venta {
   vendedorTelefono?: string;
   loteId: string;
   tandaId: string;
-  estado: EstadoVenta;
   montoTotal: number;
   cantidadTrabix: number;
   detalles: DetalleVenta[];
   cantidadRegalos: number;
   fechaRegistro: string;
-  fechaValidacion: string | null;
 }
 
 export interface VentasPaginadas {
@@ -46,10 +44,9 @@ export interface QueryVentasParams {
   vendedorId?: string;
   loteId?: string;
   tandaId?: string;
-  estado?: EstadoVenta;
   skip?: number;
   take?: number;
   cursor?: string;
-  orderBy?: 'fechaRegistro' | 'fechaValidacion' | 'montoTotal';
+  orderBy?: 'fechaRegistro' | 'montoTotal';
   orderDirection?: 'asc' | 'desc';
 }

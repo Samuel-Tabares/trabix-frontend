@@ -30,22 +30,3 @@ export function useCrearVenta() {
   });
 }
 
-export function useAprobarVenta() {
-  const queryClient = useQueryClient();
-  return useMutation({
-    mutationFn: (id: string) => ventasApi.aprobar(id),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['ventas'] });
-    },
-  });
-}
-
-export function useRechazarVenta() {
-  const queryClient = useQueryClient();
-  return useMutation({
-    mutationFn: (id: string) => ventasApi.rechazar(id),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['ventas'] });
-    },
-  });
-}
