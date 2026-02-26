@@ -20,7 +20,6 @@ export default function InicioPage() {
 
   const { data: lotesData, isLoading: lotesLoading } = useMisLotes({
     estado: EstadoLote.ACTIVO,
-    take: 1,
   });
 
   const { data: ventasData, isLoading: ventasLoading } = useVentas({
@@ -35,10 +34,7 @@ export default function InicioPage() {
   });
   const { data: miniCuadres } = useMiniCuadres();
 
-  const loteActivo = lotesData?.data?.[0];
-  const tandaActiva = loteActivo?.tandas?.find(
-    (t) => t.estado === 'EN_CASA' || t.estado === 'LIBERADA' || t.estado === 'EN_TRANSITO',
-  );
+  const lotesActivos = lotesData?.data ?? [];
   const ultimasVentas = ventasData?.data ?? [];
   const cuadrePendiente = cuadresData?.data?.[0];
   const miniCuadrePendiente = miniCuadres?.find((mc) => mc.estado === 'PENDIENTE');
@@ -49,45 +45,67 @@ export default function InicioPage() {
         Hola, {user?.nombre ?? 'Vendedor'}
       </h1>
 
-      {/* Stock de tanda activa */}
-      <Card>
-        <CardHeader className="pb-2">
-          <CardTitle className="flex items-center gap-2 text-base">
-            <Package className="h-4 w-4" />
-            Mi Stock
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          {lotesLoading ? (
-            <div className="space-y-2">
+      {/* Stock — todos los lotes activos */}
+      <div>
+        <h2 className="flex items-center gap-2 text-base font-semibold mb-2">
+          <Package className="h-4 w-4" />
+          Mi Stock
+        </h2>
+        {lotesLoading ? (
+          <Card>
+            <CardContent className="p-4 space-y-2">
               <Skeleton className="h-4 w-full" />
               <Skeleton className="h-8 w-24" />
-            </div>
-          ) : tandaActiva ? (
-            <div className="space-y-2">
-              <div className="flex items-center justify-between text-sm">
-                <span className="text-muted-foreground">
-                  Tanda {tandaActiva.numero} — Lote de {loteActivo!.cantidadTrabix}
-                </span>
-                <EstadoBadge estado={tandaActiva.estado} />
-              </div>
-              <div className="flex items-center justify-between">
-                <span className="text-2xl font-bold">
-                  {tandaActiva.stockActual}
-                </span>
-                <span className="text-sm text-muted-foreground">
-                  de {tandaActiva.stockInicial} TRABIX
-                </span>
-              </div>
-              <Progress value={tandaActiva.porcentajeStockRestante} className="h-2" />
-            </div>
-          ) : (
-            <p className="text-sm text-muted-foreground">
-              No tienes una tanda activa. Solicita un lote para empezar.
-            </p>
-          )}
-        </CardContent>
-      </Card>
+            </CardContent>
+          </Card>
+        ) : lotesActivos.length === 0 ? (
+          <Card>
+            <CardContent className="p-4">
+              <p className="text-sm text-muted-foreground">
+                No tienes lotes activos. Solicita un lote para empezar.
+              </p>
+            </CardContent>
+          </Card>
+        ) : (
+          <div className="space-y-2">
+            {lotesActivos.map((lote) => {
+              const tanda = lote.tandas?.find(
+                (t) => t.estado === 'EN_CASA' || t.estado === 'LIBERADA' || t.estado === 'EN_TRANSITO',
+              );
+              return (
+                <Card key={lote.id}>
+                  <CardContent className="p-4 space-y-2">
+                    <div className="flex items-center justify-between text-sm">
+                      <span className="text-muted-foreground">
+                        {tanda
+                          ? `Tanda ${tanda.numero} — Lote de ${lote.cantidadTrabix}`
+                          : `Lote de ${lote.cantidadTrabix}`}
+                      </span>
+                      {tanda && <EstadoBadge estado={tanda.estado} />}
+                    </div>
+                    {tanda ? (
+                      <>
+                        <div className="flex items-center justify-between">
+                          <span className="text-2xl font-bold">{tanda.stockActual}</span>
+                          <span className="text-sm text-muted-foreground">
+                            de {tanda.stockInicial} TRABIX
+                          </span>
+                        </div>
+                        <Progress
+                          value={(tanda.stockActual / tanda.stockInicial) * 100}
+                          className="h-2"
+                        />
+                      </>
+                    ) : (
+                      <p className="text-sm text-muted-foreground">Sin tanda activa aún</p>
+                    )}
+                  </CardContent>
+                </Card>
+              );
+            })}
+          </div>
+        )}
+      </div>
 
       {/* Botón registrar venta */}
       <Link href="/vender">

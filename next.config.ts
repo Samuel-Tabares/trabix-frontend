@@ -1,7 +1,7 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  allowedDevOrigins: ['192.168.1.*'],
+  allowedDevOrigins: ['192.168.1.*', '172.20.10.*'],
 
   // Proxy all /api/v1/* requests to the NestJS backend.
   // This makes the browser talk to the same origin as the frontend,

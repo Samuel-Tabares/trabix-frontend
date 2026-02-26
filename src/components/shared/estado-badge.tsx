@@ -8,6 +8,7 @@ interface EstadoBadgeProps {
 }
 
 export function EstadoBadge({ estado, className }: EstadoBadgeProps) {
+  if (!estado) return null;
   const colorClass = ESTADO_COLORS[estado] ?? 'bg-gray-100 text-gray-600';
   const label = estado.replace(/_/g, ' ');
 
