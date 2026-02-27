@@ -59,7 +59,7 @@ export function DataTable<T extends Record<string, any>>({
     ? Math.min(pagination.page * pagination.pageSize, pagination.total)
     : data.length;
 
-  const totalCols = columns.length + (rowActions ? 1 : 0);
+  const totalCols = columns.length;
 
   return (
     <div>
@@ -72,7 +72,7 @@ export function DataTable<T extends Record<string, any>>({
                   {col.label}
                 </TableHead>
               ))}
-              {rowActions && <TableHead />}
+              {rowActions && <TableHead className="w-px" />}
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -90,41 +90,44 @@ export function DataTable<T extends Record<string, any>>({
             ) : data.length === 0 ? (
               <TableRow>
                 <TableCell
-                  colSpan={totalCols}
+                  colSpan={rowActions ? totalCols + 1 : totalCols}
                   className="h-24 text-center text-muted-foreground"
                 >
                   {emptyMessage}
                 </TableCell>
               </TableRow>
             ) : (
-              data.map((row, i) => (
-                <TableRow
-                  key={i}
-                  onClick={onRowClick ? () => onRowClick(row) : undefined}
-                  className={cn(
-                    onRowClick ? 'cursor-pointer' : undefined,
-                    rowClassName ? rowClassName(row) : undefined,
-                  )}
-                >
-                  {columns.map((col) => (
-                    <TableCell key={col.key} className={col.className}>
-                      {col.render
-                        ? col.render(row[col.key], row)
-                        : row[col.key]}
-                    </TableCell>
-                  ))}
-                  {rowActions && (
-                    <TableCell
-                      className="text-right pr-3 whitespace-nowrap"
-                      onClick={(e) => e.stopPropagation()}
-                    >
-                      <div className="flex gap-1 justify-end">
-                        {rowActions(row)}
-                      </div>
-                    </TableCell>
-                  )}
-                </TableRow>
-              ))
+              data.map((row, i) => {
+                const actions = rowActions ? rowActions(row) : null;
+                return (
+                  <TableRow
+                    key={i}
+                    onClick={onRowClick ? () => onRowClick(row) : undefined}
+                    className={cn(
+                      onRowClick ? 'cursor-pointer' : undefined,
+                      rowClassName ? rowClassName(row) : undefined,
+                    )}
+                  >
+                    {columns.map((col) => (
+                      <TableCell key={col.key} className={col.className}>
+                        {col.render
+                          ? col.render(row[col.key], row)
+                          : row[col.key]}
+                      </TableCell>
+                    ))}
+                    {rowActions && (
+                      <TableCell
+                        className="whitespace-nowrap text-right"
+                        onClick={(e) => e.stopPropagation()}
+                      >
+                        <div className="flex gap-1 justify-end">
+                          {actions}
+                        </div>
+                      </TableCell>
+                    )}
+                  </TableRow>
+                );
+              })
             )}
           </TableBody>
         </Table>
