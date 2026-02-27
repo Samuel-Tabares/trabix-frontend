@@ -68,6 +68,7 @@ export interface PagarDeudaRequest {
 export interface QueryEquipamientosParams {
   estado?: EstadoEquipamiento;
   vendedorId?: string;
+  searchVendedor?: string;
   skip?: number;
   take?: number;
 }

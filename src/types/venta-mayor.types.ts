@@ -34,6 +34,7 @@ export interface VentasMayorPaginadas {
 export interface QueryVentasMayorParams {
   estado?: EstadoVentaMayor;
   vendedorId?: string;
+  searchVendedor?: string;
   skip?: number;
   take?: number;
 }

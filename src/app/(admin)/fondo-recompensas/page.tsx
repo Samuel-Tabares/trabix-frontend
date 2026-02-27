@@ -15,7 +15,7 @@ import { TipoTransaccionFondo } from '@/types/enums';
 import { formatCOP, formatDate } from '@/lib/utils/format';
 import type { MovimientoFondo } from '@/types/fondo.types';
 
-const PAGE_SIZE = 10;
+const PAGE_SIZE = 25;
 
 export default function FondoRecompensasPage() {
   const [page, setPage] = useState(1);

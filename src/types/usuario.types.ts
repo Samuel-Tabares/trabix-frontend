@@ -23,6 +23,7 @@ export interface Usuario {
   requiereCambioPassword: boolean;
   reclutadorId: string | null;
   reclutador: UsuarioBasico | null;
+  bloqueadoHasta: string | null;
   fechaCreacion: string;
   ultimoLogin: string | null;
   fechaCambioEstado: string | null;
@@ -77,6 +78,7 @@ export interface QueryUsuariosParams {
   cedula?: number;
   rol?: Rol;
   estado?: EstadoUsuario;
+  bloqueado?: boolean;
   reclutadorId?: string;
   eliminado?: boolean;
   skip?: number;

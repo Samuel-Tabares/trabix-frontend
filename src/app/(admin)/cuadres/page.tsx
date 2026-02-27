@@ -1,8 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import Link from 'next/link';
-import { Button } from '@/components/ui/button';
+import { useRouter } from 'next/navigation';
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from '@/components/ui/select';
@@ -15,7 +14,7 @@ import { formatCOP, formatDate } from '@/lib/utils/format';
 import type { Cuadre } from '@/types/cuadre.types';
 import type { MiniCuadre } from '@/types/mini-cuadre.types';
 
-const PAGE_SIZE = 10;
+const PAGE_SIZE = 25;
 
 type UnifiedItem = {
   id: string;
@@ -55,6 +54,7 @@ function miniCuadreToItem(mc: MiniCuadre): UnifiedItem {
 }
 
 export default function CuadresPage() {
+  const router = useRouter();
   const [page, setPage] = useState(1);
   const [estado, setEstado] = useState<string>('all');
 
@@ -91,13 +91,6 @@ export default function CuadresPage() {
     { key: 'montoRecibido', label: 'Recibido', render: (val: number) => formatCOP(val) },
     { key: 'estado', label: 'Estado', render: (val: string) => <EstadoBadge estado={val} /> },
     { key: 'fechaPendiente', label: 'Fecha', render: (val: string | null) => val ? formatDate(val) : '—', className: 'hidden md:table-cell' },
-    {
-      key: 'href',
-      label: '',
-      render: (_: unknown, row: UnifiedItem) => (
-        <Link href={row.href}><Button size="sm" variant="outline">Ver</Button></Link>
-      ),
-    },
   ];
 
   return (
@@ -120,6 +113,7 @@ export default function CuadresPage() {
         isLoading={isLoading}
         emptyMessage="No hay cuadres"
         pagination={{ page, pageSize: PAGE_SIZE, total: (data?.total ?? 0) + miniItems.length, onPageChange: setPage }}
+        onRowClick={(row) => router.push(row.href)}
       />
     </div>
   );

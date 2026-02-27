@@ -40,6 +40,7 @@ export interface CuadresMayorPaginados {
 export interface QueryCuadresMayorParams {
   estado?: EstadoCuadre;
   vendedorId?: string;
+  searchVendedor?: string;
   skip?: number;
   take?: number;
 }

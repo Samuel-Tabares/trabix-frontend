@@ -8,12 +8,12 @@ import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from '@/components/ui/select';
 import { DataTable } from '@/components/shared/data-table';
-import { useNotificaciones } from '@/lib/hooks/use-notificaciones';
+import { useNotificaciones, useMarcarLeida } from '@/lib/hooks/use-notificaciones';
 import { TipoNotificacion } from '@/types/enums';
 import { formatDate } from '@/lib/utils/format';
 import type { Notificacion } from '@/types/notificacion.types';
 
-const PAGE_SIZE = 10;
+const PAGE_SIZE = 25;
 
 export default function NotificacionesAdminPage() {
   const [page, setPage] = useState(1);
@@ -25,11 +25,22 @@ export default function NotificacionesAdminPage() {
     take: PAGE_SIZE,
   });
 
+  const marcarLeida = useMarcarLeida();
+
   const columns = [
     { key: 'tipo', label: 'Tipo', render: (val: string) => val.replace(/_/g, ' ') },
     { key: 'titulo', label: 'Título' },
     { key: 'mensaje', label: 'Mensaje', render: (val: string) => val.length > 60 ? val.slice(0, 60) + '...' : val },
-    { key: 'leida', label: 'Leída', render: (val: boolean) => val ? 'Sí' : 'No' },
+    {
+      key: 'leida',
+      label: 'Leída',
+      render: (val: boolean) => (
+        <div className="flex items-center gap-1.5">
+          <span className={`h-2 w-2 rounded-full ${val ? 'bg-muted-foreground/30' : 'bg-primary'}`} />
+          <span className={val ? 'text-muted-foreground text-sm' : 'font-medium text-sm'}>{val ? 'Sí' : 'No'}</span>
+        </div>
+      ),
+    },
     { key: 'fechaCreacion', label: 'Fecha', render: (val: string) => formatDate(val), className: 'hidden md:table-cell' },
   ];
 
@@ -50,7 +61,19 @@ export default function NotificacionesAdminPage() {
         </SelectContent>
       </Select>
 
-      <DataTable columns={columns} data={data?.data ?? []} isLoading={isLoading} emptyMessage="No hay notificaciones" pagination={{ page, pageSize: PAGE_SIZE, total: data?.total ?? 0, onPageChange: setPage }} />
+      <DataTable
+        columns={columns}
+        data={data?.data ?? []}
+        isLoading={isLoading}
+        emptyMessage="No hay notificaciones"
+        pagination={{ page, pageSize: PAGE_SIZE, total: data?.total ?? 0, onPageChange: setPage }}
+        onRowClick={(row: Notificacion) => {
+          if (!row.leida) marcarLeida.mutate(row.id);
+        }}
+        rowClassName={(row: Notificacion) =>
+          !row.leida ? 'bg-primary/5 border-l-2 border-l-primary/40' : undefined
+        }
+      />
     </div>
   );
 }

@@ -16,6 +16,9 @@ export const ESTADO_COLORS: Record<string, string> = {
   INACTIVO: 'bg-gray-100 text-gray-600',
   INACTIVA: 'bg-gray-100 text-gray-600',
 
+  // Blocked state
+  BLOQUEADO: 'bg-orange-100 text-orange-800',
+
   // Error states
   RECHAZADA: 'bg-red-100 text-red-800',
   CANCELADO: 'bg-red-100 text-red-800',

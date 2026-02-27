@@ -9,7 +9,6 @@ interface SearchInputProps {
   value: string;
   onChange: (value: string) => void;
   placeholder?: string;
-  debounceMs?: number;
   className?: string;
 }
 
@@ -17,23 +16,14 @@ export function SearchInput({
   value,
   onChange,
   placeholder = 'Buscar...',
-  debounceMs = 300,
   className,
 }: SearchInputProps) {
   const [internal, setInternal] = useState(value);
 
+  // Sync si el padre limpia el valor externamente
   useEffect(() => {
     setInternal(value);
   }, [value]);
-
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      if (internal !== value) {
-        onChange(internal);
-      }
-    }, debounceMs);
-    return () => clearTimeout(timer);
-  }, [internal, debounceMs, onChange, value]);
 
   return (
     <div className={cn('relative', className)}>
@@ -41,6 +31,9 @@ export function SearchInput({
       <Input
         value={internal}
         onChange={(e) => setInternal(e.target.value)}
+        onKeyDown={(e) => {
+          if (e.key === 'Enter') onChange(internal);
+        }}
         placeholder={placeholder}
         className="pl-9 pr-9"
       />

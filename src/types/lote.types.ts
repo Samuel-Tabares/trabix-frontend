@@ -1,9 +1,16 @@
 import { EstadoLote, ModeloNegocio } from './enums';
 import { Tanda } from './tanda.types';
 
+export interface VendedorBasicoLote {
+  id: string;
+  nombre: string;
+  apellidos: string;
+}
+
 export interface Lote {
   id: string;
   vendedorId: string;
+  vendedor?: VendedorBasicoLote | null;
   cantidadTrabix: number;
   modeloNegocio: ModeloNegocio;
   estado: EstadoLote;
@@ -72,6 +79,9 @@ export interface QueryLotesParams {
   estado?: EstadoLote;
   modeloNegocio?: ModeloNegocio;
   esLoteForzado?: boolean;
+  searchVendedor?: string;
+  minTrabix?: number;
+  maxTrabix?: number;
   skip?: number;
   take?: number;
   cursor?: string;

@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { Plus } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -18,18 +19,27 @@ import { useUsuarios } from '@/lib/hooks/use-usuarios';
 import { Rol, EstadoUsuario } from '@/types/enums';
 import type { Usuario } from '@/types/usuario.types';
 
-const PAGE_SIZE = 10;
+const PAGE_SIZE = 25;
+
+function esBloqueado(usuario: Usuario): boolean {
+  return !!usuario.bloqueadoHasta && new Date(usuario.bloqueadoHasta) > new Date();
+}
 
 export default function UsuariosPage() {
+  const router = useRouter();
   const [page, setPage] = useState(1);
   const [search, setSearch] = useState('');
   const [rol, setRol] = useState<string>('all');
   const [estado, setEstado] = useState<string>('all');
 
+  // 'BLOQUEADO' es un filtro especial que manda bloqueado=true al backend
+  const isBloqueadoFilter = estado === 'BLOQUEADO';
+
   const { data, isLoading } = useUsuarios({
     search: search || undefined,
     rol: rol !== 'all' ? (rol as Rol) : undefined,
-    estado: estado !== 'all' ? (estado as EstadoUsuario) : undefined,
+    estado: !isBloqueadoFilter && estado !== 'all' ? (estado as EstadoUsuario) : undefined,
+    bloqueado: isBloqueadoFilter ? true : undefined,
     skip: (page - 1) * PAGE_SIZE,
     take: PAGE_SIZE,
   });
@@ -39,12 +49,10 @@ export default function UsuariosPage() {
       key: 'nombreCompleto',
       label: 'Nombre',
       render: (_: unknown, row: Usuario) => (
-        <Link href={`/usuarios/${row.id}`} className="font-medium hover:underline">
-          {row.nombre} {row.apellidos}
-        </Link>
+        <span className="font-medium">{row.nombre} {row.apellidos}</span>
       ),
     },
-    { key: 'cedula', label: 'Cédula' },
+    { key: 'telefono', label: 'Teléfono' },
     { key: 'email', label: 'Email', className: 'hidden md:table-cell' },
     {
       key: 'rol',
@@ -54,7 +62,12 @@ export default function UsuariosPage() {
     {
       key: 'estado',
       label: 'Estado',
-      render: (val: string) => <EstadoBadge estado={val} />,
+      render: (val: string, row: Usuario) => (
+        <div className="flex flex-wrap gap-1">
+          <EstadoBadge estado={val} />
+          {esBloqueado(row) && <EstadoBadge estado="BLOQUEADO" />}
+        </div>
+      ),
     },
   ];
 
@@ -95,6 +108,7 @@ export default function UsuariosPage() {
             <SelectItem value="all">Todos</SelectItem>
             <SelectItem value={EstadoUsuario.ACTIVO}>Activo</SelectItem>
             <SelectItem value={EstadoUsuario.INACTIVO}>Inactivo</SelectItem>
+            <SelectItem value="BLOQUEADO">Bloqueado</SelectItem>
           </SelectContent>
         </Select>
       </div>
@@ -110,6 +124,7 @@ export default function UsuariosPage() {
           total: data?.total ?? 0,
           onPageChange: setPage,
         }}
+        onRowClick={(row) => router.push(`/usuarios/${row.id}`)}
       />
 
       <Link href="/usuarios/eliminados">

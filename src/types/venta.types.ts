@@ -44,6 +44,7 @@ export interface QueryVentasParams {
   vendedorId?: string;
   loteId?: string;
   tandaId?: string;
+  searchVendedor?: string;
   skip?: number;
   take?: number;
   cursor?: string;

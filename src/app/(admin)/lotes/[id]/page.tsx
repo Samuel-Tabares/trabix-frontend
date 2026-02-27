@@ -40,10 +40,21 @@ export default function LoteDetallePage({ params }: { params: Promise<{ id: stri
         <EstadoBadge estado={lote.estado} />
       </div>
 
+      {lote.vendedor && (
+        <Card>
+          <CardHeader><CardTitle className="text-base">Vendedor</CardTitle></CardHeader>
+          <CardContent className="flex items-center justify-between text-sm">
+            <p className="font-medium">{lote.vendedor.nombre} {lote.vendedor.apellidos}</p>
+            <Link href={`/usuarios/${lote.vendedor.id}`}>
+              <Button variant="outline" size="sm">Ver perfil</Button>
+            </Link>
+          </CardContent>
+        </Card>
+      )}
+
       <Card>
         <CardHeader><CardTitle className="text-base">Información General</CardTitle></CardHeader>
         <CardContent className="grid grid-cols-2 gap-3 text-sm">
-          <div><p className="text-muted-foreground">Modelo</p><p className="font-medium">{lote.modeloNegocio.replace('MODELO_', '').replace('_', '/')}</p></div>
           <div><p className="text-muted-foreground">Lote Forzado</p><p className="font-medium">{lote.esLoteForzado ? 'Sí' : 'No'}</p></div>
           <div><p className="text-muted-foreground">Creado</p><p>{formatDate(lote.fechaCreacion)}</p></div>
           {lote.fechaActivacion && <div><p className="text-muted-foreground">Activado</p><p>{formatDate(lote.fechaActivacion)}</p></div>}

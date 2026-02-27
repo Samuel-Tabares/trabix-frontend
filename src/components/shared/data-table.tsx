@@ -11,6 +11,7 @@ import {
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
+import { cn } from '@/lib/utils';
 
 interface Column<T> {
   key: string;
@@ -32,6 +33,9 @@ interface DataTableProps<T> {
   isLoading?: boolean;
   emptyMessage?: string;
   pagination?: PaginationProps;
+  onRowClick?: (row: T) => void;
+  rowActions?: (row: T) => React.ReactNode;
+  rowClassName?: (row: T) => string | undefined;
 }
 
 export function DataTable<T extends Record<string, any>>({
@@ -40,6 +44,9 @@ export function DataTable<T extends Record<string, any>>({
   isLoading,
   emptyMessage = 'No hay datos disponibles',
   pagination,
+  onRowClick,
+  rowActions,
+  rowClassName,
 }: DataTableProps<T>) {
   const totalPages = pagination
     ? Math.ceil(pagination.total / pagination.pageSize)
@@ -52,6 +59,8 @@ export function DataTable<T extends Record<string, any>>({
     ? Math.min(pagination.page * pagination.pageSize, pagination.total)
     : data.length;
 
+  const totalCols = columns.length + (rowActions ? 1 : 0);
+
   return (
     <div>
       <div className="rounded-md border">
@@ -63,6 +72,7 @@ export function DataTable<T extends Record<string, any>>({
                   {col.label}
                 </TableHead>
               ))}
+              {rowActions && <TableHead />}
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -74,12 +84,13 @@ export function DataTable<T extends Record<string, any>>({
                       <Skeleton className="h-4 w-full" />
                     </TableCell>
                   ))}
+                  {rowActions && <TableCell />}
                 </TableRow>
               ))
             ) : data.length === 0 ? (
               <TableRow>
                 <TableCell
-                  colSpan={columns.length}
+                  colSpan={totalCols}
                   className="h-24 text-center text-muted-foreground"
                 >
                   {emptyMessage}
@@ -87,7 +98,14 @@ export function DataTable<T extends Record<string, any>>({
               </TableRow>
             ) : (
               data.map((row, i) => (
-                <TableRow key={i}>
+                <TableRow
+                  key={i}
+                  onClick={onRowClick ? () => onRowClick(row) : undefined}
+                  className={cn(
+                    onRowClick ? 'cursor-pointer' : undefined,
+                    rowClassName ? rowClassName(row) : undefined,
+                  )}
+                >
                   {columns.map((col) => (
                     <TableCell key={col.key} className={col.className}>
                       {col.render
@@ -95,6 +113,16 @@ export function DataTable<T extends Record<string, any>>({
                         : row[col.key]}
                     </TableCell>
                   ))}
+                  {rowActions && (
+                    <TableCell
+                      className="text-right pr-3 whitespace-nowrap"
+                      onClick={(e) => e.stopPropagation()}
+                    >
+                      <div className="flex gap-1 justify-end">
+                        {rowActions(row)}
+                      </div>
+                    </TableCell>
+                  )}
                 </TableRow>
               ))
             )}

@@ -25,13 +25,19 @@ import {
   useDesbloquearUsuario,
   useEliminarUsuario,
 } from '@/lib/hooks/use-usuarios';
-import { EstadoUsuario } from '@/types/enums';
+import { useEquipamientos } from '@/lib/hooks/use-equipamiento';
+import { EstadoUsuario, Rol, EstadoEquipamiento } from '@/types/enums';
 import { formatDate, formatDateTime } from '@/lib/utils/format';
 import { toast } from 'sonner';
+
+function esBloqueado(bloqueadoHasta: string | null): boolean {
+  return !!bloqueadoHasta && new Date(bloqueadoHasta) > new Date();
+}
 
 export default function UsuarioDetallePage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
   const { data: usuario, isLoading } = useUsuario(id);
+  const { data: equipamientosData } = useEquipamientos({ vendedorId: id });
   const actualizar = useActualizarUsuario();
   const cambiarEstado = useCambiarEstadoUsuario();
   const resetPw = useResetPassword();
@@ -78,6 +84,7 @@ export default function UsuarioDetallePage({ params }: { params: Promise<{ id: s
 
   if (!usuario) return <p className="text-muted-foreground">Usuario no encontrado</p>;
 
+  const bloqueado = esBloqueado(usuario.bloqueadoHasta);
   const nuevoEstado = usuario.estado === EstadoUsuario.ACTIVO ? EstadoUsuario.INACTIVO : EstadoUsuario.ACTIVO;
 
   return (
@@ -86,6 +93,7 @@ export default function UsuarioDetallePage({ params }: { params: Promise<{ id: s
         <Link href="/usuarios"><Button variant="ghost" size="icon"><ArrowLeft className="h-4 w-4" /></Button></Link>
         <h1 className="text-2xl font-bold">{usuario.nombre} {usuario.apellidos}</h1>
         <EstadoBadge estado={usuario.estado} />
+        {bloqueado && <EstadoBadge estado="BLOQUEADO" />}
       </div>
 
       <Card>
@@ -145,6 +153,32 @@ export default function UsuarioDetallePage({ params }: { params: Promise<{ id: s
       </Card>
 
       <Card>
+        <CardHeader><CardTitle className="text-base">Equipamiento</CardTitle></CardHeader>
+        <CardContent>
+          {(() => {
+            const activos = (equipamientosData?.data ?? []).filter(
+              (e) => e.estado !== EstadoEquipamiento.DEVUELTO,
+            );
+            if (activos.length === 0) {
+              return <p className="text-sm text-muted-foreground">Sin equipamiento</p>;
+            }
+            return (
+              <div className="flex flex-wrap gap-2">
+                {activos.map((e) => (
+                  <Link key={e.id} href={`/equipamiento/${e.id}`}>
+                    <Button variant="outline" size="sm">
+                      <EstadoBadge estado={e.estado} />
+                      <span className="ml-2 text-xs">Ver equipamiento</span>
+                    </Button>
+                  </Link>
+                ))}
+              </div>
+            );
+          })()}
+        </CardContent>
+      </Card>
+
+      <Card>
         <CardHeader><CardTitle className="text-base">Acciones</CardTitle></CardHeader>
         <CardContent className="flex flex-wrap gap-2">
           <Button variant="outline" onClick={() => setConfirmEstado(true)}>
@@ -170,13 +204,16 @@ export default function UsuarioDetallePage({ params }: { params: Promise<{ id: s
                 onError: () => toast.error('Error al desbloquear'),
               });
             }}
-            disabled={desbloquear.isPending}
+            disabled={!bloqueado || desbloquear.isPending}
+            title={!bloqueado ? 'El usuario no está bloqueado' : undefined}
           >
             Desbloquear
           </Button>
-          <Link href={`/usuarios/${id}/jerarquia`}>
-            <Button variant="outline"><GitBranch className="mr-2 h-4 w-4" />Jerarquía</Button>
-          </Link>
+          {usuario.rol === Rol.RECLUTADOR && (
+            <Link href={`/usuarios/${id}/jerarquia`}>
+              <Button variant="outline"><GitBranch className="mr-2 h-4 w-4" />Jerarquía</Button>
+            </Link>
+          )}
           <Separator orientation="vertical" className="h-8" />
           <Button variant="destructive" onClick={() => setConfirmEliminar(true)}>
             Eliminar

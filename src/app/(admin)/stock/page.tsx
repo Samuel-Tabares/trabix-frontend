@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { Plus } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -11,17 +12,23 @@ import {
 import { Skeleton } from '@/components/ui/skeleton';
 import { DataTable } from '@/components/shared/data-table';
 import { EstadoBadge } from '@/components/shared/estado-badge';
+import { ConfirmDialog } from '@/components/shared/confirm-dialog';
 import { useStockAdmin, useDeficit, useStockReservado } from '@/lib/hooks/use-admin-stock';
-import { usePedidosStock } from '@/lib/hooks/use-pedidos-stock';
+import { usePedidosStock, useConfirmarPedido, useCancelarPedido } from '@/lib/hooks/use-pedidos-stock';
 import { EstadoPedidoStock } from '@/types/enums';
 import { formatCOP, formatDate } from '@/lib/utils/format';
 import type { PedidoStockResponse } from '@/types/stock.types';
 
-const PAGE_SIZE = 10;
+const PAGE_SIZE = 25;
 
 export default function StockPage() {
+  const router = useRouter();
   const [page, setPage] = useState(1);
   const [estadoPedido, setEstadoPedido] = useState<string>('all');
+  const [pendingAction, setPendingAction] = useState<{ id: string; action: 'confirmar' | 'cancelar' } | null>(null);
+
+  const confirmarPedido = useConfirmarPedido();
+  const cancelarPedido = useCancelarPedido();
 
   const { data: stock, isLoading: loadingStock } = useStockAdmin();
   const { data: deficit, isLoading: loadingDeficit } = useDeficit();
@@ -38,14 +45,9 @@ export default function StockPage() {
     { key: 'costoRealPorTrabix', label: 'Costo/Ud', render: (val: number) => formatCOP(val) },
     { key: 'estado', label: 'Estado', render: (val: string) => <EstadoBadge estado={val} /> },
     { key: 'fechaCreacion', label: 'Fecha', render: (val: string) => formatDate(val), className: 'hidden md:table-cell' },
-    {
-      key: 'id',
-      label: '',
-      render: (_: unknown, row: PedidoStockResponse) => (
-        <Link href={`/stock/pedidos/${row.id}`}><Button size="sm" variant="outline">Ver</Button></Link>
-      ),
-    },
   ];
+
+  const isMutating = confirmarPedido.isPending || cancelarPedido.isPending;
 
   return (
     <div className="space-y-6">
@@ -97,8 +99,59 @@ export default function StockPage() {
           </SelectContent>
         </Select>
 
-        <DataTable columns={columns} data={pedidos?.data ?? []} isLoading={loadingPedidos} emptyMessage="No hay pedidos de stock" pagination={{ page, pageSize: PAGE_SIZE, total: pedidos?.total ?? 0, onPageChange: setPage }} />
+        <DataTable
+          columns={columns}
+          data={pedidos?.data ?? []}
+          isLoading={loadingPedidos}
+          emptyMessage="No hay pedidos de stock"
+          pagination={{ page, pageSize: PAGE_SIZE, total: pedidos?.total ?? 0, onPageChange: setPage }}
+          onRowClick={(row) => router.push(`/stock/pedidos/${row.id}`)}
+          rowActions={(row: PedidoStockResponse) =>
+            row.estado === EstadoPedidoStock.BORRADOR ? (
+              <>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={(e) => { e.stopPropagation(); setPendingAction({ id: row.id, action: 'confirmar' }); }}
+                >
+                  Confirmar
+                </Button>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="text-destructive hover:text-destructive"
+                  onClick={(e) => { e.stopPropagation(); setPendingAction({ id: row.id, action: 'cancelar' }); }}
+                >
+                  Cancelar
+                </Button>
+              </>
+            ) : null
+          }
+        />
       </div>
+
+      <ConfirmDialog
+        open={pendingAction !== null}
+        onOpenChange={(open) => { if (!open) setPendingAction(null); }}
+        title={pendingAction?.action === 'confirmar' ? 'Confirmar pedido' : 'Cancelar pedido'}
+        description={
+          pendingAction?.action === 'confirmar'
+            ? '¿Confirmar este pedido de stock? El pedido quedará listo para recepción.'
+            : '¿Cancelar este pedido de stock? Esta acción no se puede deshacer.'
+        }
+        confirmLabel={pendingAction?.action === 'confirmar' ? 'Confirmar' : 'Cancelar pedido'}
+        variant={pendingAction?.action === 'cancelar' ? 'destructive' : 'default'}
+        onConfirm={() => {
+          if (!pendingAction) return;
+          if (pendingAction.action === 'confirmar') {
+            confirmarPedido.mutate(pendingAction.id);
+          } else {
+            cancelarPedido.mutate({ id: pendingAction.id, data: { motivo: 'Cancelado por administrador' } });
+          }
+          setPendingAction(null);
+        }}
+        isLoading={isMutating}
+      />
     </div>
   );
 }
