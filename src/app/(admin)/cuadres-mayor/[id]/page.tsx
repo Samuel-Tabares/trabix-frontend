@@ -43,6 +43,15 @@ export default function CuadreMayorDetallePage({ params }: { params: Promise<{ i
       </Card>
 
       <Card>
+        <CardHeader><CardTitle className="text-base">Venta Mayor</CardTitle></CardHeader>
+        <CardContent>
+          <Link href={`/ventas-mayor/${cuadre.ventaMayorId}`}>
+            <Button variant="outline" className="w-full">Ver Venta Mayor</Button>
+          </Link>
+        </CardContent>
+      </Card>
+
+      <Card>
         <CardHeader><CardTitle className="text-base">Desglose Financiero</CardTitle></CardHeader>
         <CardContent className="space-y-3">
           <div className="grid grid-cols-2 gap-3 text-sm">
@@ -84,7 +93,7 @@ export default function CuadreMayorDetallePage({ params }: { params: Promise<{ i
         open={confirmOpen}
         onOpenChange={setConfirmOpen}
         title="Confirmar Cuadre Mayor"
-        description="¿Confirmar este cuadre mayor?"
+        description="¿Confirmar el procesamiento de este cuadre mayor? Esta acción ejecutará las transferencias y actualizará el inventario."
         onConfirm={() => {
           confirmar.mutate(id, {
             onSuccess: () => { toast.success('Cuadre mayor confirmado'); setConfirmOpen(false); },

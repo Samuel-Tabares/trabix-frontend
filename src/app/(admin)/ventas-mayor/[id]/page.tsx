@@ -57,6 +57,17 @@ export default function VentaMayorDetallePage({ params }: { params: Promise<{ id
         </Card>
       )}
 
+      {venta.cuadreMayorId && (
+        <Card>
+          <CardHeader><CardTitle className="text-base">Cuadre Mayor</CardTitle></CardHeader>
+          <CardContent>
+            <Link href={`/cuadres-mayor/${venta.cuadreMayorId}`}>
+              <Button variant="outline" className="w-full">Ver Cuadre Mayor</Button>
+            </Link>
+          </CardContent>
+        </Card>
+      )}
+
       {venta.estado === 'PENDIENTE' && (
         <Button onClick={() => setConfirmCompletar(true)}>Completar Venta</Button>
       )}
