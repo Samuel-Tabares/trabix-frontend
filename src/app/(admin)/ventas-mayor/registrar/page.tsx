@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { ArrowLeft } from 'lucide-react';
+import { ArrowLeft, AlertTriangle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -16,7 +16,6 @@ import { useRegistrarVentaMayor, useStockDisponible } from '@/lib/hooks/use-vent
 import { useUsuarios } from '@/lib/hooks/use-usuarios';
 import { Rol, EstadoUsuario, ModalidadVentaMayor } from '@/types/enums';
 import { getApiError } from '@/lib/utils/errors';
-import { formatCOP } from '@/lib/utils/format';
 import { toast } from 'sonner';
 
 export default function RegistrarVentaMayorPage() {
@@ -31,10 +30,13 @@ export default function RegistrarVentaMayorPage() {
 
   const { data: stock } = useStockDisponible(vendedorId);
 
+  const cantidadNum = Number(cantidad);
+  const esExcepcionAdmin = cantidadNum >= 10 && cantidadNum < 20;
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     registrar.mutate(
-      { vendedorId, cantidadUnidades: Number(cantidad), conLicor, modalidad },
+      { vendedorId, cantidadUnidades: cantidadNum, conLicor, modalidad },
       {
         onSuccess: () => { toast.success('Venta mayor registrada'); router.push('/ventas-mayor'); },
         onError: (err) => toast.error(getApiError(err, 'Error al registrar venta mayor')),
@@ -77,7 +79,22 @@ export default function RegistrarVentaMayorPage() {
             </div>
             <div className="space-y-2">
               <Label>Cantidad de Unidades</Label>
-              <Input type="number" min="1" value={cantidad} onChange={(e) => setCantidad(e.target.value)} required />
+              <Input
+                type="number"
+                min="10"
+                value={cantidad}
+                onChange={(e) => setCantidad(e.target.value)}
+                required
+              />
+              {esExcepcionAdmin && (
+                <div className="flex items-start gap-2 rounded-md border border-amber-300 bg-amber-50 p-3 text-sm text-amber-800">
+                  <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
+                  <span>
+                    <strong>Excepción admin:</strong> ventas de 10–19 unidades aplican el precio
+                    al por mayor del tramo de 20+ unidades.
+                  </span>
+                </div>
+              )}
             </div>
             <div className="flex items-center gap-3">
               <Switch checked={conLicor} onCheckedChange={setConLicor} />
