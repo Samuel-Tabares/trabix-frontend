@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import Link from 'next/link';
 import { ClipboardCheck } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
@@ -10,10 +10,12 @@ import { EmptyState } from '@/components/shared/empty-state';
 import { ListSkeleton } from '@/components/shared/loading-skeleton';
 import { useCuadres } from '@/lib/hooks/use-cuadres';
 import { useMiniCuadres } from '@/lib/hooks/use-mini-cuadres';
+import { useMisLotes } from '@/lib/hooks/use-lotes';
 import { formatCOP, formatDate } from '@/lib/utils/format';
 import { EstadoCuadre } from '@/types/enums';
 import type { Cuadre } from '@/types/cuadre.types';
 import type { MiniCuadre } from '@/types/mini-cuadre.types';
+import type { Lote } from '@/types/lote.types';
 
 const FILTROS = [
   { label: 'Todos', value: undefined },
@@ -21,21 +23,40 @@ const FILTROS = [
   { label: 'Exitosos', value: EstadoCuadre.EXITOSO },
 ] as const;
 
+type LoteInfo = { numero: number; cantidadTrabix: number; numeroTandas: number };
+
 type UnifiedItem = {
   id: string;
   tipo: 'cuadre' | 'mini';
   label: string;
+  sublabel: string | null;
   monto: number;
   estado: string;
   fechaPendiente: string | null;
   href: string;
 };
 
-function cuadreToItem(c: Cuadre): UnifiedItem {
+function buildLoteMap(lotes: Lote[]): Map<string, LoteInfo> {
+  const map = new Map<string, LoteInfo>();
+  const sorted = [...lotes].sort(
+    (a, b) => new Date(a.fechaCreacion).getTime() - new Date(b.fechaCreacion).getTime(),
+  );
+  sorted.forEach((lote, idx) => {
+    map.set(lote.id, { numero: idx + 1, cantidadTrabix: lote.cantidadTrabix, numeroTandas: lote.numeroTandas });
+  });
+  return map;
+}
+
+function cuadreToItem(c: Cuadre, loteMap: Map<string, LoteInfo>): UnifiedItem {
+  const info = loteMap.get(c.tanda.loteId);
+  const sublabel = info
+    ? `Lote #${info.numero} · ${info.cantidadTrabix} TRABIX · ${info.numeroTandas} tandas`
+    : null;
   return {
     id: c.id,
     tipo: 'cuadre',
     label: `Tanda #${c.tanda.numero}`,
+    sublabel,
     monto: c.montoEsperado,
     estado: c.estado,
     fechaPendiente: c.fechaPendiente,
@@ -43,11 +64,14 @@ function cuadreToItem(c: Cuadre): UnifiedItem {
   };
 }
 
-function miniCuadreToItem(mc: MiniCuadre): UnifiedItem {
+function miniCuadreToItem(mc: MiniCuadre, loteMap: Map<string, LoteInfo>): UnifiedItem {
+  const info = mc.loteId ? loteMap.get(mc.loteId) : undefined;
+  const sublabel = info ? `Lote #${info.numero} · ${info.cantidadTrabix} TRABIX` : null;
   return {
     id: mc.id,
     tipo: 'mini',
     label: 'Cierre de Lote',
+    sublabel,
     monto: mc.montoFinal,
     estado: mc.estado,
     fechaPendiente: mc.fechaPendiente,
@@ -59,11 +83,14 @@ export default function MisCuadresPage() {
   const [filtro, setFiltro] = useState<EstadoCuadre | undefined>(undefined);
   const { data, isLoading } = useCuadres({ estado: filtro, take: 50 });
   const { data: miniCuadres, isLoading: miniLoading } = useMiniCuadres();
+  const { data: misLotesData } = useMisLotes({ take: 200, orderBy: 'fechaCreacion', orderDirection: 'asc' });
 
-  const cuadreItems = (data?.data ?? []).map(cuadreToItem);
+  const loteMap = useMemo(() => buildLoteMap(misLotesData?.data ?? []), [misLotesData]);
+
+  const cuadreItems = (data?.data ?? []).map((c) => cuadreToItem(c, loteMap));
   const miniItems = (miniCuadres ?? [])
     .filter((mc) => !filtro || (mc.estado as string) === (filtro as string))
-    .map(miniCuadreToItem);
+    .map((mc) => miniCuadreToItem(mc, loteMap));
 
   const allItems: UnifiedItem[] = [...cuadreItems, ...miniItems].sort((a, b) => {
     const dateA = a.fechaPendiente ? new Date(a.fechaPendiente).getTime() : 0;
@@ -108,7 +135,10 @@ export default function MisCuadresPage() {
                   <div className="flex items-center justify-between">
                     <div>
                       <p className="font-medium">{item.label}</p>
-                      <p className="text-sm text-muted-foreground">
+                      {item.sublabel && (
+                        <p className="text-xs text-muted-foreground leading-tight">{item.sublabel}</p>
+                      )}
+                      <p className="text-sm text-muted-foreground mt-0.5">
                         Esperado: {formatCOP(item.monto)}
                       </p>
                     </div>

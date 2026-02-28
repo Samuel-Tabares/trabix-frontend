@@ -11,13 +11,31 @@ import { Separator } from '@/components/ui/separator';
 import { Skeleton } from '@/components/ui/skeleton';
 import { EstadoBadge } from '@/components/shared/estado-badge';
 import { useCuadre, useConfirmarCuadre } from '@/lib/hooks/use-cuadres';
+import { useLote, useLotes } from '@/lib/hooks/use-lotes';
 import { formatCOP, formatDate } from '@/lib/utils/format';
+import { useMemo } from 'react';
 import { toast } from 'sonner';
 
 export default function CuadreDetallePage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
   const { data: cuadre, isLoading } = useCuadre(id);
   const confirmar = useConfirmarCuadre();
+
+  const loteId = cuadre?.tanda.loteId ?? '';
+  const { data: lote } = useLote(loteId);
+  const { data: lotesVendedor } = useLotes(
+    { vendedorId: lote?.vendedorId, take: 500, orderBy: 'fechaCreacion', orderDirection: 'asc' },
+    !!lote?.vendedorId,
+  );
+
+  const loteNumero = useMemo(() => {
+    if (!loteId || !lotesVendedor?.data) return null;
+    const sorted = [...lotesVendedor.data].sort(
+      (a, b) => new Date(a.fechaCreacion).getTime() - new Date(b.fechaCreacion).getTime(),
+    );
+    const idx = sorted.findIndex((l) => l.id === loteId);
+    return idx >= 0 ? idx + 1 : null;
+  }, [loteId, lotesVendedor]);
   const [montoRecibido, setMontoRecibido] = useState('');
   const [montoError, setMontoError] = useState('');
 
@@ -66,7 +84,13 @@ export default function CuadreDetallePage({ params }: { params: Promise<{ id: st
         <CardHeader><CardTitle className="text-base">Información</CardTitle></CardHeader>
         <CardContent className="grid grid-cols-2 gap-3 text-sm">
           <div><p className="text-muted-foreground">Concepto</p><p className="font-medium">{cuadre.concepto.replace(/_/g, ' ')}</p></div>
-          <div><p className="text-muted-foreground">Tanda</p><p className="font-medium">#{cuadre.tanda.numero}</p></div>
+          <div><p className="text-muted-foreground">Tanda</p><p className="font-medium">#{cuadre.tanda.numero} de {lote?.numeroTandas ?? '…'}</p></div>
+          {loteNumero != null && (
+            <div><p className="text-muted-foreground">Lote</p><p className="font-medium">#{loteNumero} ({lote?.cantidadTrabix} TRABIX)</p></div>
+          )}
+          {lote?.vendedor && (
+            <div><p className="text-muted-foreground">Vendedor</p><p className="font-medium">{lote.vendedor.nombre} {lote.vendedor.apellidos}</p></div>
+          )}
           <div><p className="text-muted-foreground">Monto Esperado</p><p className="font-semibold">{formatCOP(cuadre.montoEsperado)}</p></div>
           <div><p className="text-muted-foreground">Monto Esperado Ajustado</p><p className="font-semibold">{formatCOP(cuadre.montoEsperadoAjustado)}</p></div>
           <div><p className="text-muted-foreground">Monto Recibido</p><p className="font-semibold">{formatCOP(cuadre.montoRecibido)}</p></div>

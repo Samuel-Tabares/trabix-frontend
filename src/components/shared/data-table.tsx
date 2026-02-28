@@ -115,16 +115,14 @@ export function DataTable<T extends Record<string, any>>({
                           : row[col.key]}
                       </TableCell>
                     ))}
-                    {rowActions && (
-                      <TableCell
-                        className="whitespace-nowrap text-right"
-                        onClick={(e) => e.stopPropagation()}
-                      >
-                        <div className="flex gap-1 justify-end">
-                          {actions}
-                        </div>
-                      </TableCell>
-                    )}
+                    <TableCell
+                      className="whitespace-nowrap text-right"
+                      onClick={(e) => e.stopPropagation()}
+                    >
+                      {actions && (
+                        <div className="flex gap-1 justify-end">{actions}</div>
+                      )}
+                    </TableCell>
                   </TableRow>
                 );
               })

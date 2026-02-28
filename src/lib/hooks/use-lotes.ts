@@ -45,10 +45,11 @@ export function useSolicitarLote() {
   });
 }
 
-export function useLotes(params?: QueryLotesParams) {
+export function useLotes(params?: QueryLotesParams, enabled = true) {
   return useQuery({
     queryKey: ['lotes', params],
     queryFn: () => lotesApi.listar(params),
+    enabled,
   });
 }
 

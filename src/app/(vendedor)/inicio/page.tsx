@@ -1,5 +1,6 @@
 'use client';
 
+import { useMemo } from 'react';
 import Link from 'next/link';
 import { ShoppingCart, Package, FileCheck, AlertCircle } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -18,9 +19,26 @@ import { EstadoLote } from '@/types/enums';
 export default function InicioPage() {
   const user = useAuthStore((s) => s.user);
 
-  const { data: lotesData, isLoading: lotesLoading } = useMisLotes({
-    estado: EstadoLote.ACTIVO,
+  // Traer todos los lotes ordenados por fecha para calcular el # secuencial por lote
+  const { data: todosLotesData, isLoading: lotesLoading } = useMisLotes({
+    take: 200,
+    orderBy: 'fechaCreacion',
+    orderDirection: 'asc',
   });
+
+  // Mapa loteId → número secuencial (posición en el historial del vendedor)
+  const loteNumeroMap = useMemo(() => {
+    const map = new Map<string, number>();
+    (todosLotesData?.data ?? []).forEach((lote, idx) => {
+      map.set(lote.id, idx + 1);
+    });
+    return map;
+  }, [todosLotesData]);
+
+  const lotesActivos = useMemo(
+    () => (todosLotesData?.data ?? []).filter((l) => l.estado === EstadoLote.ACTIVO),
+    [todosLotesData],
+  );
 
   const { data: ventasData, isLoading: ventasLoading } = useVentas({
     take: 5,
@@ -34,7 +52,6 @@ export default function InicioPage() {
   });
   const { data: miniCuadres } = useMiniCuadres();
 
-  const lotesActivos = lotesData?.data ?? [];
   const ultimasVentas = ventasData?.data ?? [];
   const cuadrePendiente = cuadresData?.data?.[0];
   const miniCuadrePendiente = miniCuadres?.find((mc) => mc.estado === 'PENDIENTE');
@@ -72,14 +89,15 @@ export default function InicioPage() {
               const tanda = lote.tandas?.find(
                 (t) => t.estado === 'EN_CASA' || t.estado === 'LIBERADA' || t.estado === 'EN_TRANSITO',
               );
+              const loteNum = loteNumeroMap.get(lote.id);
               return (
                 <Card key={lote.id}>
                   <CardContent className="p-4 space-y-2">
                     <div className="flex items-center justify-between text-sm">
                       <span className="text-muted-foreground">
-                        {tanda
-                          ? `Tanda ${tanda.numero} — Lote de ${lote.cantidadTrabix}`
-                          : `Lote de ${lote.cantidadTrabix}`}
+                        {loteNum != null ? `Lote #${loteNum}` : 'Lote'}{' '}
+                        <span className="text-xs">· {lote.cantidadTrabix} TRABIX · {lote.numeroTandas} tandas</span>
+                        {tanda ? ` — Tanda ${tanda.numero}` : ''}
                       </span>
                       {tanda && <EstadoBadge estado={tanda.estado} />}
                     </div>

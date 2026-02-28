@@ -1,5 +1,6 @@
 'use client';
 
+import { useMemo } from 'react';
 import Link from 'next/link';
 import { Plus, Package } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
@@ -11,9 +12,35 @@ import { ListSkeleton } from '@/components/shared/loading-skeleton';
 import { useMisLotes } from '@/lib/hooks/use-lotes';
 import { formatCOP } from '@/lib/utils/format';
 
+// Prioridad de grupo para ordenamiento en pantalla
+const GRUPO: Record<string, number> = { CREADO: 0, ACTIVO: 1, FINALIZADO: 2 };
+
 export default function MisLotesPage() {
-  const { data, isLoading } = useMisLotes({ take: 50 });
+  // Traer todos ordenados por fecha de creación ASC → índice = número de lote
+  const { data, isLoading } = useMisLotes({ take: 50, orderBy: 'fechaCreacion', orderDirection: 'asc' });
   const lotes = data?.data ?? [];
+
+  // Mapa loteId → número secuencial (basado en orden cronológico de creación)
+  const loteNumeroMap = useMemo(() => {
+    const map = new Map<string, number>();
+    lotes.forEach((lote, idx) => map.set(lote.id, idx + 1));
+    return map;
+  }, [lotes]);
+
+  // Ordenamiento visual: CREADO (asc fecha), ACTIVO (asc fecha), FINALIZADO (desc fecha)
+  const lotesOrdenados = useMemo(
+    () =>
+      [...lotes].sort((a, b) => {
+        const grupoA = GRUPO[a.estado] ?? 99;
+        const grupoB = GRUPO[b.estado] ?? 99;
+        if (grupoA !== grupoB) return grupoA - grupoB;
+        const dateA = new Date(a.fechaCreacion).getTime();
+        const dateB = new Date(b.fechaCreacion).getTime();
+        // FINALIZADO: más nuevo primero; CREADO y ACTIVO: más viejo primero
+        return a.estado === 'FINALIZADO' ? dateB - dateA : dateA - dateB;
+      }),
+    [lotes],
+  );
 
   return (
     <div className="space-y-4">
@@ -42,14 +69,17 @@ export default function MisLotesPage() {
         />
       ) : (
         <div className="space-y-3">
-          {lotes.map((lote) => (
+          {lotesOrdenados.map((lote) => (
             <Link key={lote.id} href={`/mis-lotes/${lote.id}`}>
               <Card className="hover:bg-accent/50 transition-colors">
                 <CardContent className="p-4 space-y-2">
                   <div className="flex items-center justify-between">
-                    <span className="font-medium">
-                      {lote.cantidadTrabix} TRABIX
-                    </span>
+                    <div>
+                      <span className="font-medium">Lote #{loteNumeroMap.get(lote.id)}</span>
+                      <span className="text-sm text-muted-foreground ml-2">
+                        {lote.cantidadTrabix} TRABIX · {lote.numeroTandas} tandas
+                      </span>
+                    </div>
                     <EstadoBadge estado={lote.estado} />
                   </div>
                   <div className="flex items-center justify-between text-sm text-muted-foreground">

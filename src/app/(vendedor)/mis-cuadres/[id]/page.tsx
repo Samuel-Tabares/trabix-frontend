@@ -1,6 +1,6 @@
 'use client';
 
-import { use } from 'react';
+import { use, useMemo } from 'react';
 import Link from 'next/link';
 import { ArrowLeft } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -9,6 +9,7 @@ import { Separator } from '@/components/ui/separator';
 import { Skeleton } from '@/components/ui/skeleton';
 import { EstadoBadge } from '@/components/shared/estado-badge';
 import { useCuadre } from '@/lib/hooks/use-cuadres';
+import { useMisLotes } from '@/lib/hooks/use-lotes';
 import { formatCOP, formatDateTime } from '@/lib/utils/format';
 
 export default function CuadreDetallePage({
@@ -18,6 +19,20 @@ export default function CuadreDetallePage({
 }) {
   const { id } = use(params);
   const { data: cuadre, isLoading } = useCuadre(id);
+  const { data: misLotesData } = useMisLotes({ take: 200, orderBy: 'fechaCreacion', orderDirection: 'asc' });
+
+  const { loteNumero, cantidadTrabix, numeroTandas } = useMemo(() => {
+    const loteId = cuadre?.tanda.loteId;
+    if (!loteId || !misLotesData?.data) return { loteNumero: null, cantidadTrabix: null, numeroTandas: null };
+    const sorted = [...misLotesData.data].sort(
+      (a, b) => new Date(a.fechaCreacion).getTime() - new Date(b.fechaCreacion).getTime(),
+    );
+    const idx = sorted.findIndex((l) => l.id === loteId);
+    const lote = sorted[idx];
+    return idx >= 0
+      ? { loteNumero: idx + 1, cantidadTrabix: lote.cantidadTrabix, numeroTandas: lote.numeroTandas }
+      : { loteNumero: null, cantidadTrabix: null, numeroTandas: null };
+  }, [cuadre, misLotesData]);
 
   if (isLoading) {
     return (
@@ -56,8 +71,16 @@ export default function CuadreDetallePage({
           </div>
           <div className="flex items-center justify-between text-sm">
             <span className="text-muted-foreground">Tanda</span>
-            <span className="font-medium">#{cuadre.tanda.numero}</span>
+            <span className="font-medium">
+              #{cuadre.tanda.numero}{numeroTandas != null ? ` de ${numeroTandas}` : ''}
+            </span>
           </div>
+          {loteNumero != null && (
+            <div className="flex items-center justify-between text-sm">
+              <span className="text-muted-foreground">Lote</span>
+              <span className="font-medium">#{loteNumero}{cantidadTrabix != null ? ` · ${cantidadTrabix} TRABIX` : ''}</span>
+            </div>
+          )}
           {cuadre.fueCerradoPorMayor && (
             <div className="rounded-md bg-blue-50 p-2 text-xs text-blue-700">
               Cerrado por cuadre mayor
