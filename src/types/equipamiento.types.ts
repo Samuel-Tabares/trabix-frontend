@@ -25,6 +25,7 @@ export interface Equipamiento {
   estado: EstadoEquipamiento;
   tieneDeposito: boolean;
   depositoPagado: number | null;
+  depositoAplicado: number;
   mensualidadActual: number;
   ultimaMensualidadPagada: string | null;
   neveraDanada: boolean;

@@ -132,7 +132,28 @@ export default function EquipamientoDetallePage({ params }: { params: Promise<{ 
         <CardHeader><CardTitle className="text-base">Información</CardTitle></CardHeader>
         <CardContent className="grid grid-cols-2 gap-3 text-sm">
           <div><p className="text-muted-foreground">Vendedor</p><p className="font-medium">{equipo.vendedor ? `${equipo.vendedor.nombre} ${equipo.vendedor.apellidos}` : equipo.vendedorId.slice(0, 8)}</p></div>
-          <div><p className="text-muted-foreground">Depósito</p><p>{equipo.tieneDeposito ? `Sí — ${formatCOP(equipo.depositoPagado ?? 0)}` : 'No'}</p></div>
+          {equipo.tieneDeposito ? (
+            <>
+              <div>
+                <p className="text-muted-foreground">Depósito</p>
+                <p>Sí — {formatCOP(equipo.depositoPagado ?? 0)}</p>
+              </div>
+              {equipo.depositoAplicado > 0 && (
+                <div>
+                  <p className="text-muted-foreground">Depósito aplicado a deuda</p>
+                  <p className="text-amber-700">−{formatCOP(equipo.depositoAplicado)}</p>
+                </div>
+              )}
+              {(equipo.depositoAplicado ?? 0) < (equipo.depositoPagado ?? 0) && (
+                <div>
+                  <p className="text-muted-foreground">Depósito disponible</p>
+                  <p className="font-medium">{formatCOP((equipo.depositoPagado ?? 0) - (equipo.depositoAplicado ?? 0))}</p>
+                </div>
+              )}
+            </>
+          ) : (
+            <div><p className="text-muted-foreground">Depósito</p><p>No</p></div>
+          )}
           <div><p className="text-muted-foreground">Mensualidad</p><p>{formatCOP(equipo.mensualidadActual)}</p></div>
           <div><p className="text-muted-foreground">Al Día</p><p className={equipo.mensualidadAlDia ? 'text-green-600' : 'text-red-600'}>{equipo.mensualidadAlDia ? 'Sí' : `No (${equipo.diasMoraMensualidad} días mora)`}</p></div>
           <div><p className="text-muted-foreground">Mensualidades Pend.</p><p>{equipo.mensualidadesPendientes} — {formatCOP(equipo.montoMensualidadesPendientes)}</p></div>

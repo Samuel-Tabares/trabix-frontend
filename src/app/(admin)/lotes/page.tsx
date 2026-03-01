@@ -71,7 +71,7 @@ export default function LotesPage() {
     },
     {
       key: 'fechaActivacion',
-      label: 'Activado',
+      label: 'Activado LIFO',
       render: (val: string | null) => val ? formatDate(val) : '—',
       className: 'hidden md:table-cell',
     },

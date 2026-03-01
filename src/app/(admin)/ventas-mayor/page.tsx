@@ -12,7 +12,7 @@ import { DataTable } from '@/components/shared/data-table';
 import { EstadoBadge } from '@/components/shared/estado-badge';
 import { SearchInput } from '@/components/shared/search-input';
 import { ConfirmDialog } from '@/components/shared/confirm-dialog';
-import { useVentasMayor, useCompletarVentaMayor } from '@/lib/hooks/use-ventas-mayor';
+import { useVentasMayor, useConfirmarVentaMayor } from '@/lib/hooks/use-ventas-mayor';
 import { EstadoVentaMayor } from '@/types/enums';
 import { formatCOP, formatDate } from '@/lib/utils/format';
 import type { VentaMayor } from '@/types/venta-mayor.types';
@@ -26,7 +26,7 @@ export default function VentasMayorPage() {
   const [searchVendedor, setSearchVendedor] = useState('');
   const [pendingId, setPendingId] = useState<string | null>(null);
 
-  const completar = useCompletarVentaMayor();
+  const completar = useConfirmarVentaMayor();
 
   const { data, isLoading } = useVentasMayor({
     estado: estado !== 'all' ? (estado as EstadoVentaMayor) : undefined,
@@ -86,7 +86,7 @@ export default function VentasMayorPage() {
               variant="outline"
               onClick={(e) => { e.stopPropagation(); setPendingId(row.id); }}
             >
-              Completar
+              Confirmar
             </Button>
           ) : null
         }
@@ -95,9 +95,9 @@ export default function VentasMayorPage() {
       <ConfirmDialog
         open={pendingId !== null}
         onOpenChange={(open) => { if (!open) setPendingId(null); }}
-        title="Completar venta al mayor"
-        description="¿Confirmar que se ha completado esta venta al mayor?"
-        confirmLabel="Completar"
+        title="Confirmar venta al mayor"
+        description="¿Confirmar esta venta al mayor? Se creará el cuadre mayor con datos financieros actuales."
+        confirmLabel="Confirmar"
         onConfirm={() => { completar.mutate(pendingId!); setPendingId(null); }}
         isLoading={completar.isPending}
       />

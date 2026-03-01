@@ -10,6 +10,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { EstadoBadge } from '@/components/shared/estado-badge';
 import { useMisLotes } from '@/lib/hooks/use-lotes';
 import { useVentas } from '@/lib/hooks/use-ventas';
+import { useVentasMayor } from '@/lib/hooks/use-ventas-mayor';
 import { useCuadres } from '@/lib/hooks/use-cuadres';
 import { useMiniCuadres } from '@/lib/hooks/use-mini-cuadres';
 import { useAuthStore } from '@/lib/store/auth.store';
@@ -46,6 +47,11 @@ export default function InicioPage() {
     orderDirection: 'desc',
   });
 
+  const { data: ventasMayorData } = useVentasMayor({
+    vendedorId: user?.id,
+    take: 3,
+  });
+
   const { data: cuadresData, isLoading: cuadresLoading } = useCuadres({
     estado: 'PENDIENTE' as never,
     take: 1,
@@ -53,6 +59,7 @@ export default function InicioPage() {
   const { data: miniCuadres } = useMiniCuadres();
 
   const ultimasVentas = ventasData?.data ?? [];
+  const ultimasVentasMayor = ventasMayorData?.data ?? [];
   const cuadrePendiente = cuadresData?.data?.[0];
   const miniCuadrePendiente = miniCuadres?.find((mc) => mc.estado === 'PENDIENTE');
 
@@ -185,6 +192,42 @@ export default function InicioPage() {
             </div>
           </CardContent>
         </Card>
+      )}
+
+      {/* Últimas ventas al mayor */}
+      {ultimasVentasMayor.length > 0 && (
+        <div>
+          <div className="flex items-center justify-between mb-2">
+            <h2 className="text-base font-semibold flex items-center gap-2">
+              <ShoppingCart className="h-4 w-4" />
+              Ventas al Mayor
+            </h2>
+            <Link href="/mis-ventas-mayor" className="text-sm text-primary">
+              Ver todas
+            </Link>
+          </div>
+          <div className="space-y-2">
+            {ultimasVentasMayor.map((venta) => (
+              <Link key={venta.id} href={`/mis-ventas-mayor/${venta.id}`}>
+                <Card className="hover:bg-accent/50 transition-colors">
+                  <CardContent className="p-3">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="text-sm font-medium">
+                          {venta.cantidadUnidades} TRABIX — {formatCOP(venta.ingresoBruto)}
+                        </p>
+                        <p className="text-xs text-muted-foreground">
+                          {new Date(venta.fechaRegistro).toLocaleDateString('es-CO')}
+                        </p>
+                      </div>
+                      <EstadoBadge estado={venta.estado} />
+                    </div>
+                  </CardContent>
+                </Card>
+              </Link>
+            ))}
+          </div>
+        </div>
       )}
 
       {/* Últimas ventas */}

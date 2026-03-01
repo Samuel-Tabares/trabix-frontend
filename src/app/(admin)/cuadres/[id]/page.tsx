@@ -2,7 +2,7 @@
 
 import { use, useState } from 'react';
 import Link from 'next/link';
-import { ArrowLeft } from 'lucide-react';
+import { ArrowLeft, AlertTriangle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -42,11 +42,14 @@ export default function CuadreDetallePage({ params }: { params: Promise<{ id: st
   if (isLoading) return <div className="space-y-4"><Skeleton className="h-8 w-48" /><Skeleton className="h-60 w-full" /></div>;
   if (!cuadre) return <p className="text-muted-foreground">Cuadre no encontrado</p>;
 
+  // Monto faltante real = diferencia entre lo esperado y lo recibido
+  const faltanteSimple = cuadre.montoEsperado - cuadre.montoRecibido;
+
   const validateMonto = (value: string) => {
     const n = Number(value);
     if (!value) return '';
     if (n <= 0) return 'El monto debe ser mayor a 0';
-    if (n > cuadre.montoFaltante) return `No puede superar el monto pendiente (${formatCOP(cuadre.montoFaltante)})`;
+    if (n > faltanteSimple) return `No puede superar el monto pendiente (${formatCOP(faltanteSimple)})`;
     return '';
   };
 
@@ -62,7 +65,7 @@ export default function CuadreDetallePage({ params }: { params: Promise<{ id: st
           if (estaCompleto) {
             toast.success('Cuadre confirmado exitosamente', { description: `Pago total: ${formatCOP(data.montoRecibido ?? monto)}` });
           } else {
-            toast.success('Abono registrado', { description: `Se abonaron ${formatCOP(monto)} — falta ${formatCOP((cuadre.montoFaltante - monto))}` });
+            toast.success('Abono registrado', { description: `Se abonaron ${formatCOP(monto)} — falta ${formatCOP((faltanteSimple - monto))}` });
           }
           setMontoRecibido('');
           setMontoError('');
@@ -172,17 +175,27 @@ export default function CuadreDetallePage({ params }: { params: Promise<{ id: st
         <Card>
           <CardHeader><CardTitle className="text-base">Confirmar Cuadre</CardTitle></CardHeader>
           <CardContent className="space-y-3">
+            {cuadre.desglose && cuadre.desglose.deudaDano > 0 && (
+              <div className="flex gap-2 rounded-md border border-red-200 bg-red-50 p-3 text-sm text-red-800">
+                <AlertTriangle className="h-4 w-4 mt-0.5 shrink-0 text-red-600" />
+                <p>
+                  <span className="font-semibold">Atención — deuda por daño de equipamiento pendiente.</span>{' '}
+                  Primero se debe saldar completamente la deuda del equipamiento dañado antes de registrar abonos a este cuadre.
+                  Registrar abonos antes genera inconsistencias financieras.
+                </p>
+              </div>
+            )}
             <Separator />
             <div className="space-y-2">
               <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Monto recibido del vendedor</p>
               <div className="flex items-end gap-2">
                 <div className="space-y-1 flex-1">
-                  <Label className="text-xs">Monto (máx. {formatCOP(cuadre.montoFaltante)})</Label>
+                  <Label className="text-xs">Monto (máx. {formatCOP(faltanteSimple)})</Label>
                   <Input
                     type="number"
                     step="1000"
                     min="1"
-                    max={cuadre.montoFaltante}
+                    max={faltanteSimple}
                     value={montoRecibido}
                     onChange={(e) => { setMontoRecibido(e.target.value); setMontoError(validateMonto(e.target.value)); }}
                     placeholder="0"

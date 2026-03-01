@@ -38,10 +38,21 @@ export function useRegistrarVentaMayor() {
   });
 }
 
-export function useCompletarVentaMayor() {
+export function useConfirmarVentaMayor() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: (id: string) => ventasMayorApi.completar(id),
+    mutationFn: (id: string) => ventasMayorApi.confirmar(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['ventas-mayor'] });
+      queryClient.invalidateQueries({ queryKey: ['cuadres-mayor'] });
+    },
+  });
+}
+
+export function useEliminarVentaMayor() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) => ventasMayorApi.eliminar(id),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['ventas-mayor'] });
     },

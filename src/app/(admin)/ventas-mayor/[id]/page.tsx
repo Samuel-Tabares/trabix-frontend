@@ -8,15 +8,19 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
 import { EstadoBadge } from '@/components/shared/estado-badge';
 import { ConfirmDialog } from '@/components/shared/confirm-dialog';
-import { useVentaMayor, useCompletarVentaMayor } from '@/lib/hooks/use-ventas-mayor';
+import { useVentaMayor, useConfirmarVentaMayor, useEliminarVentaMayor } from '@/lib/hooks/use-ventas-mayor';
 import { formatCOP, formatDate } from '@/lib/utils/format';
 import { toast } from 'sonner';
+import { useRouter } from 'next/navigation';
 
 export default function VentaMayorDetallePage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
+  const router = useRouter();
   const { data: venta, isLoading } = useVentaMayor(id);
-  const completar = useCompletarVentaMayor();
-  const [confirmCompletar, setConfirmCompletar] = useState(false);
+  const confirmar = useConfirmarVentaMayor();
+  const eliminar = useEliminarVentaMayor();
+  const [confirmConfirmar, setConfirmConfirmar] = useState(false);
+  const [confirmEliminar, setConfirmEliminar] = useState(false);
 
   if (isLoading) return <div className="space-y-4"><Skeleton className="h-8 w-48" /><Skeleton className="h-60 w-full" /></div>;
   if (!venta) return <p className="text-muted-foreground">Venta mayor no encontrada</p>;
@@ -39,7 +43,7 @@ export default function VentaMayorDetallePage({ params }: { params: Promise<{ id
           <div><p className="text-muted-foreground">Con Licor</p><p>{venta.conLicor ? 'Sí' : 'No'}</p></div>
           <div><p className="text-muted-foreground">Modalidad</p><p>{venta.modalidad}</p></div>
           <div><p className="text-muted-foreground">Fecha</p><p>{formatDate(venta.fechaRegistro)}</p></div>
-          {venta.fechaCompletada && <div><p className="text-muted-foreground">Completada</p><p>{formatDate(venta.fechaCompletada)}</p></div>}
+          {venta.fechaCompletada && <div><p className="text-muted-foreground">Confirmada</p><p>{formatDate(venta.fechaCompletada)}</p></div>}
         </CardContent>
       </Card>
 
@@ -69,21 +73,46 @@ export default function VentaMayorDetallePage({ params }: { params: Promise<{ id
       )}
 
       {venta.estado === 'PENDIENTE' && (
-        <Button onClick={() => setConfirmCompletar(true)}>Completar Venta</Button>
+        <div className="flex gap-2">
+          <Button onClick={() => setConfirmConfirmar(true)} className="flex-1">
+            Confirmar Venta
+          </Button>
+          <Button variant="destructive" onClick={() => setConfirmEliminar(true)}>
+            Cancelar
+          </Button>
+        </div>
       )}
 
       <ConfirmDialog
-        open={confirmCompletar}
-        onOpenChange={setConfirmCompletar}
-        title="Completar Venta Mayor"
-        description="¿Marcar esta venta mayor como completada?"
+        open={confirmConfirmar}
+        onOpenChange={setConfirmConfirmar}
+        title="Confirmar Venta Mayor"
+        description="¿Confirmar esta venta mayor? Se creará el cuadre mayor con los datos financieros actuales."
         onConfirm={() => {
-          completar.mutate(id, {
-            onSuccess: () => { toast.success('Venta completada'); setConfirmCompletar(false); },
-            onError: () => toast.error('Error al completar'),
+          confirmar.mutate(id, {
+            onSuccess: () => { toast.success('Venta confirmada. Cuadre mayor creado.'); setConfirmConfirmar(false); },
+            onError: () => toast.error('Error al confirmar la venta'),
           });
         }}
-        isLoading={completar.isPending}
+        isLoading={confirmar.isPending}
+      />
+
+      <ConfirmDialog
+        open={confirmEliminar}
+        onOpenChange={setConfirmEliminar}
+        title="Cancelar Venta Mayor"
+        description="¿Cancelar y eliminar esta venta mayor? Esta acción no se puede deshacer. El stock no se verá afectado."
+        onConfirm={() => {
+          eliminar.mutate(id, {
+            onSuccess: () => {
+              toast.success('Venta eliminada');
+              setConfirmEliminar(false);
+              router.push('/ventas-mayor');
+            },
+            onError: () => toast.error('Error al eliminar la venta'),
+          });
+        }}
+        isLoading={eliminar.isPending}
       />
     </div>
   );
