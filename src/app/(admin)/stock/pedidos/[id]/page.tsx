@@ -77,14 +77,17 @@ export default function PedidoStockDetallePage({ params }: { params: Promise<{ i
     setInsumos((prev) => ({ ...prev, [tipoId]: { ...prev[tipoId], [field]: value } }));
   };
 
+  const efectivaCantidad =
+    editingInfo && Number(editCantidad) > 0 ? Number(editCantidad) : pedido.cantidadTrabix;
+
   const calcularAporte = (tipoId: string): string => {
     const costo = Number(getInsumo(tipoId).costoTotal);
-    if (!costo || !pedido.cantidadTrabix) return '—';
-    return `$${(costo / pedido.cantidadTrabix).toLocaleString('es-CO', { maximumFractionDigits: 0 })}`;
+    if (!costo || !efectivaCantidad) return '—';
+    return `$${(costo / efectivaCantidad).toLocaleString('es-CO', { maximumFractionDigits: 0 })}`;
   };
 
   const totalCostos = pedido.detallesCosto.reduce((s, d) => s + d.costoTotal, 0);
-  const costoPorTrabix = pedido.cantidadTrabix > 0 ? totalCostos / pedido.cantidadTrabix : 0;
+  const costoPorTrabix = efectivaCantidad > 0 ? totalCostos / efectivaCantidad : 0;
 
   const handleGuardarCosto = (tipo: TipoInsumo) => {
     const { cantidad, costoTotal } = getInsumo(tipo.id);
@@ -113,6 +116,15 @@ export default function PedidoStockDetallePage({ params }: { params: Promise<{ i
 
     if (tipo.esObligatorio && monto <= 0) {
       toast.error(`${tipo.nombre} es obligatorio — ingresa un monto mayor a $0`);
+      return;
+    }
+
+    // No hacer nada si el valor es idéntico al guardado
+    if (
+      existing &&
+      monto === existing.costoTotal &&
+      cantidadUnidades === (existing.cantidad ?? 0)
+    ) {
       return;
     }
 
@@ -239,7 +251,7 @@ export default function PedidoStockDetallePage({ params }: { params: Promise<{ i
           {isBorrador && (
             <p className="text-xs text-muted-foreground">
               Ingresa la cantidad y costo total de cada insumo. Presiona Enter para guardar.
-              Aporte/trabix = costo total ÷ {pedido.cantidadTrabix} trabix.
+              Aporte/trabix = costo total ÷ {efectivaCantidad} trabix.
             </p>
           )}
         </CardHeader>
