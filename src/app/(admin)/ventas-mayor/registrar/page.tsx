@@ -14,14 +14,14 @@ import {
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { useRegistrarVentaMayor, useStockDisponible } from '@/lib/hooks/use-ventas-mayor';
 import { useUsuarios } from '@/lib/hooks/use-usuarios';
-import { Rol, EstadoUsuario, ModalidadVentaMayor } from '@/types/enums';
+import { EstadoUsuario, ModalidadVentaMayor } from '@/types/enums';
 import { getApiError } from '@/lib/utils/errors';
 import { toast } from 'sonner';
 
 export default function RegistrarVentaMayorPage() {
   const router = useRouter();
   const registrar = useRegistrarVentaMayor();
-  const { data: vendedores } = useUsuarios({ rol: Rol.VENDEDOR, estado: EstadoUsuario.ACTIVO, take: 100 });
+  const { data: vendedores } = useUsuarios({ estado: EstadoUsuario.ACTIVO, take: 100 });
 
   const [vendedorId, setVendedorId] = useState('');
   const [cantidad, setCantidad] = useState('');

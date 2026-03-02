@@ -1,8 +1,8 @@
 'use client';
 
-import { use, useState } from 'react';
+import { use, useState, useEffect } from 'react';
 import Link from 'next/link';
-import { ArrowLeft, Plus, Trash2 } from 'lucide-react';
+import { ArrowLeft, Trash2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -10,71 +10,162 @@ import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Separator } from '@/components/ui/separator';
-import { Switch } from '@/components/ui/switch';
 import { EstadoBadge } from '@/components/shared/estado-badge';
 import { ConfirmDialog } from '@/components/shared/confirm-dialog';
 import {
   usePedidoStock, useAgregarCosto, useEliminarCosto,
-  useConfirmarPedido, useRecibirPedido, useCancelarPedido,
+  useRecibirPedido, useModificarPedido,
 } from '@/lib/hooks/use-pedidos-stock';
+import { useTiposInsumo } from '@/lib/hooks/use-configuraciones';
 import { formatCOP, formatDate } from '@/lib/utils/format';
+import { getApiError } from '@/lib/utils/errors';
 import { toast } from 'sonner';
+import type { TipoInsumo } from '@/types/configuracion.types';
+
+type InsumoState = { cantidad: string; costoTotal: string };
 
 export default function PedidoStockDetallePage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
-  const { data: pedido, isLoading } = usePedidoStock(id);
+  const { data: pedido, isLoading: loadingPedido } = usePedidoStock(id);
+  const { data: tipos, isLoading: loadingTipos } = useTiposInsumo();
   const agregarCosto = useAgregarCosto();
   const eliminarCosto = useEliminarCosto();
-  const confirmar = useConfirmarPedido();
   const recibir = useRecibirPedido();
-  const cancelar = useCancelarPedido();
+  const modificar = useModificarPedido();
 
-  const [showCostoForm, setShowCostoForm] = useState(false);
-  const [concepto, setConcepto] = useState('');
-  const [costoTotal, setCostoTotal] = useState('');
-  const [cantidad, setCantidad] = useState('');
-  const [esObligatorio, setEsObligatorio] = useState(true);
-  const [confirmAction, setConfirmAction] = useState<'confirmar' | 'recibir' | 'cancelar' | null>(null);
-  const [motivoCancelacion, setMotivoCancelacion] = useState('');
+  const [insumos, setInsumos] = useState<Record<string, InsumoState>>({});
+  const [editingInfo, setEditingInfo] = useState(false);
+  const [editCantidad, setEditCantidad] = useState('');
+  const [editNotas, setEditNotas] = useState('');
+  const [confirmRecibir, setConfirmRecibir] = useState(false);
 
-  if (isLoading) return <div className="space-y-4"><Skeleton className="h-8 w-48" /><Skeleton className="h-60 w-full" /></div>;
+  // Inicializar inputs desde detallesCosto existentes
+  useEffect(() => {
+    if (!pedido || !tipos) return;
+    const initial: Record<string, InsumoState> = {};
+    tipos.forEach((tipo) => {
+      const existing = pedido.detallesCosto.find(
+        (d) => d.concepto.toLowerCase() === tipo.nombre.toLowerCase(),
+      );
+      initial[tipo.id] = {
+        cantidad: existing?.cantidad ? String(existing.cantidad) : '',
+        costoTotal: existing ? String(existing.costoTotal) : '',
+      };
+    });
+    setInsumos(initial);
+  }, [pedido?.id, tipos]);
+
+  const isLoading = loadingPedido || loadingTipos;
+
+  if (isLoading) {
+    return (
+      <div className="space-y-4">
+        <Skeleton className="h-8 w-48" />
+        <Skeleton className="h-40 w-full" />
+        <Skeleton className="h-60 w-full" />
+      </div>
+    );
+  }
   if (!pedido) return <p className="text-muted-foreground">Pedido no encontrado</p>;
 
-  const handleAgregarCosto = (e: React.FormEvent) => {
-    e.preventDefault();
-    agregarCosto.mutate(
-      { pedidoId: id, data: { concepto, costoTotal: Number(costoTotal), cantidad: cantidad ? Number(cantidad) : undefined, esObligatorio } },
-      {
-        onSuccess: () => { toast.success('Costo agregado'); setShowCostoForm(false); setConcepto(''); setCostoTotal(''); setCantidad(''); },
-        onError: () => toast.error('Error al agregar costo'),
-      },
-    );
+  const isBorrador = pedido.estado === 'BORRADOR';
+
+  const getInsumo = (tipoId: string): InsumoState =>
+    insumos[tipoId] ?? { cantidad: '', costoTotal: '' };
+
+  const setInsumoField = (tipoId: string, field: keyof InsumoState, value: string) => {
+    setInsumos((prev) => ({ ...prev, [tipoId]: { ...prev[tipoId], [field]: value } }));
   };
 
-  const handleConfirmAction = () => {
-    if (confirmAction === 'confirmar') {
-      confirmar.mutate(id, {
-        onSuccess: () => { toast.success('Pedido confirmado'); setConfirmAction(null); },
-        onError: () => toast.error('Error'),
-      });
-    } else if (confirmAction === 'recibir') {
-      recibir.mutate(id, {
-        onSuccess: () => { toast.success('Pedido recibido'); setConfirmAction(null); },
-        onError: () => toast.error('Error'),
-      });
-    } else if (confirmAction === 'cancelar') {
-      cancelar.mutate(
-        { id, data: { motivo: motivoCancelacion } },
+  const calcularAporte = (tipoId: string): string => {
+    const costo = Number(getInsumo(tipoId).costoTotal);
+    if (!costo || !pedido.cantidadTrabix) return '—';
+    return `$${(costo / pedido.cantidadTrabix).toLocaleString('es-CO', { maximumFractionDigits: 0 })}`;
+  };
+
+  const totalCostos = pedido.detallesCosto.reduce((s, d) => s + d.costoTotal, 0);
+  const costoPorTrabix = pedido.cantidadTrabix > 0 ? totalCostos / pedido.cantidadTrabix : 0;
+
+  const handleGuardarCosto = (tipo: TipoInsumo) => {
+    const { cantidad, costoTotal } = getInsumo(tipo.id);
+    const monto = Number(costoTotal);
+    const cantidadUnidades = Number(cantidad);
+
+    const existing = pedido.detallesCosto.find(
+      (d) => d.concepto.toLowerCase() === tipo.nombre.toLowerCase(),
+    );
+
+    if (monto <= 0 && !tipo.esObligatorio) {
+      if (existing) {
+        eliminarCosto.mutate(
+          { pedidoId: id, costoId: existing.id },
+          {
+            onSuccess: () => {
+              setInsumos((prev) => ({ ...prev, [tipo.id]: { cantidad: '', costoTotal: '' } }));
+              toast.success(`${tipo.nombre} removido`);
+            },
+            onError: (err) => toast.error(getApiError(err, 'Error')),
+          },
+        );
+      }
+      return;
+    }
+
+    if (tipo.esObligatorio && monto <= 0) {
+      toast.error(`${tipo.nombre} es obligatorio — ingresa un monto mayor a $0`);
+      return;
+    }
+
+    const doAgregar = () => {
+      agregarCosto.mutate(
         {
-          onSuccess: () => { toast.success('Pedido cancelado'); setConfirmAction(null); setMotivoCancelacion(''); },
-          onError: () => toast.error('Error'),
+          pedidoId: id,
+          data: {
+            concepto: tipo.nombre,
+            costoTotal: monto,
+            cantidad: cantidadUnidades > 0 ? cantidadUnidades : undefined,
+            esObligatorio: tipo.esObligatorio,
+          },
+        },
+        {
+          onSuccess: () => toast.success(`${tipo.nombre} guardado`),
+          onError: (err) => toast.error(getApiError(err, 'Error al guardar')),
         },
       );
+    };
+
+    if (existing) {
+      eliminarCosto.mutate(
+        { pedidoId: id, costoId: existing.id },
+        { onSuccess: doAgregar, onError: (err) => toast.error(getApiError(err, 'Error')) },
+      );
+    } else {
+      doAgregar();
     }
   };
 
-  const isBorrador = pedido.estado === 'BORRADOR';
-  const isConfirmado = pedido.estado === 'CONFIRMADO';
+  const handleKeyDown = (e: React.KeyboardEvent, tipo: TipoInsumo) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      handleGuardarCosto(tipo);
+    }
+  };
+
+  const handleGuardarInfo = () => {
+    modificar.mutate(
+      {
+        id,
+        data: {
+          cantidadTrabix: Number(editCantidad) || undefined,
+          notas: editNotas || undefined,
+        },
+      },
+      {
+        onSuccess: () => { toast.success('Pedido actualizado'); setEditingInfo(false); },
+        onError: (err) => toast.error(getApiError(err, 'Error')),
+      },
+    );
+  };
 
   return (
     <div className="space-y-4">
@@ -84,103 +175,208 @@ export default function PedidoStockDetallePage({ params }: { params: Promise<{ i
         <EstadoBadge estado={pedido.estado} />
       </div>
 
+      {/* Información del pedido */}
       <Card>
-        <CardHeader><CardTitle className="text-base">Información</CardTitle></CardHeader>
-        <CardContent className="grid grid-cols-2 gap-3 text-sm">
-          <div><p className="text-muted-foreground">Cantidad</p><p className="font-semibold">{pedido.cantidadTrabix} uds</p></div>
-          <div><p className="text-muted-foreground">Costo Total</p><p className="font-semibold">{formatCOP(pedido.costoTotal)}</p></div>
-          <div><p className="text-muted-foreground">Costo/Trabix</p><p>{formatCOP(pedido.costoRealPorTrabix)}</p></div>
-          <div><p className="text-muted-foreground">Fecha</p><p>{formatDate(pedido.fechaCreacion)}</p></div>
-          {pedido.fechaRecepcion && <div><p className="text-muted-foreground">Recibido</p><p>{formatDate(pedido.fechaRecepcion)}</p></div>}
-          {pedido.notas && <div className="col-span-2"><p className="text-muted-foreground">Notas</p><p>{pedido.notas}</p></div>}
-          {pedido.motivoCancelacion && <div className="col-span-2"><p className="text-muted-foreground">Motivo Cancelación</p><p className="text-red-600">{pedido.motivoCancelacion}</p></div>}
-        </CardContent>
-      </Card>
-
-      <Card>
-        <CardHeader className="flex flex-row items-center justify-between">
-          <CardTitle className="text-base">Costos ({pedido.detallesCosto.length})</CardTitle>
-          {isBorrador && <Button size="sm" variant="outline" onClick={() => setShowCostoForm(!showCostoForm)}><Plus className="h-4 w-4 mr-1" />Agregar</Button>}
+        <CardHeader className="flex flex-row items-center justify-between pb-2">
+          <CardTitle className="text-base">Información</CardTitle>
+          {isBorrador && !editingInfo && (
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={() => {
+                setEditCantidad(String(pedido.cantidadTrabix));
+                setEditNotas(pedido.notas ?? '');
+                setEditingInfo(true);
+              }}
+            >
+              Editar
+            </Button>
+          )}
         </CardHeader>
-        <CardContent className="space-y-3">
-          {showCostoForm && (
-            <form onSubmit={handleAgregarCosto} className="space-y-3 rounded-md border p-3">
-              <div className="grid grid-cols-2 gap-3">
-                <div className="space-y-1"><Label className="text-xs">Concepto</Label><Input value={concepto} onChange={(e) => setConcepto(e.target.value)} required /></div>
-                <div className="space-y-1"><Label className="text-xs">Costo Total</Label><Input type="number" step="0.01" value={costoTotal} onChange={(e) => setCostoTotal(e.target.value)} required /></div>
-                <div className="space-y-1"><Label className="text-xs">Cantidad (opc.)</Label><Input type="number" value={cantidad} onChange={(e) => setCantidad(e.target.value)} /></div>
-                <div className="flex items-center gap-2 pt-5"><Switch checked={esObligatorio} onCheckedChange={setEsObligatorio} /><Label className="text-xs">Obligatorio</Label></div>
+        <CardContent>
+          {editingInfo ? (
+            <div className="space-y-3">
+              <div className="space-y-1">
+                <Label className="text-xs">Cantidad de Trabix</Label>
+                <Input
+                  type="number"
+                  min={1}
+                  className="no-spinner"
+                  value={editCantidad}
+                  onChange={(e) => setEditCantidad(e.target.value)}
+                />
               </div>
-              <Button type="submit" size="sm" disabled={agregarCosto.isPending}>Agregar Costo</Button>
-            </form>
-          )}
-          {pedido.detallesCosto.length === 0 ? (
-            <p className="text-sm text-muted-foreground">Sin costos registrados</p>
+              <div className="space-y-1">
+                <Label className="text-xs">Notas</Label>
+                <Textarea value={editNotas} onChange={(e) => setEditNotas(e.target.value)} />
+              </div>
+              <div className="flex gap-2">
+                <Button size="sm" onClick={handleGuardarInfo} disabled={modificar.isPending}>Guardar</Button>
+                <Button size="sm" variant="ghost" onClick={() => setEditingInfo(false)}>Cancelar</Button>
+              </div>
+            </div>
           ) : (
-            pedido.detallesCosto.map((c) => (
-              <div key={c.id} className="flex items-center justify-between rounded-md border p-2 text-sm">
-                <div>
-                  <span className="font-medium">{c.concepto}</span>
-                  {c.cantidad && <span className="text-muted-foreground ml-2">x{c.cantidad}</span>}
-                  {c.esObligatorio && <span className="ml-2 text-xs bg-blue-100 text-blue-700 px-1 rounded">Obligatorio</span>}
-                </div>
-                <div className="flex items-center gap-2">
-                  <span className="font-semibold">{formatCOP(c.costoTotal)}</span>
-                  {isBorrador && (
-                    <Button size="icon" variant="ghost" className="h-7 w-7" disabled={eliminarCosto.isPending} onClick={() => {
-                      eliminarCosto.mutate({ pedidoId: id, costoId: c.id }, {
-                        onSuccess: () => toast.success('Costo eliminado'),
-                        onError: () => toast.error('Error'),
-                      });
-                    }}><Trash2 className="h-3 w-3" /></Button>
-                  )}
-                </div>
-              </div>
-            ))
+            <div className="grid grid-cols-2 gap-3 text-sm">
+              <div><p className="text-muted-foreground">Cantidad</p><p className="font-semibold">{pedido.cantidadTrabix} uds</p></div>
+              <div><p className="text-muted-foreground">Costo Total Insumos</p><p className="font-semibold">{formatCOP(totalCostos)}</p></div>
+              <div><p className="text-muted-foreground">Costo de producción/Trabix</p><p className="font-semibold">{formatCOP(costoPorTrabix)}</p></div>
+              <div><p className="text-muted-foreground">Fecha</p><p>{formatDate(pedido.fechaCreacion)}</p></div>
+              {pedido.fechaRecepcion && (
+                <div><p className="text-muted-foreground">Recibido</p><p>{formatDate(pedido.fechaRecepcion)}</p></div>
+              )}
+              {pedido.notas && (
+                <div className="col-span-2"><p className="text-muted-foreground">Notas</p><p>{pedido.notas}</p></div>
+              )}
+            </div>
           )}
         </CardContent>
       </Card>
 
-      {(isBorrador || isConfirmado) && (
+      {/* Insumos del pedido */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-base">Insumos del Pedido</CardTitle>
+          {isBorrador && (
+            <p className="text-xs text-muted-foreground">
+              Ingresa la cantidad y costo total de cada insumo. Presiona Enter para guardar.
+              Aporte/trabix = costo total ÷ {pedido.cantidadTrabix} trabix.
+            </p>
+          )}
+        </CardHeader>
+        <CardContent>
+          {!tipos || tipos.length === 0 ? (
+            <p className="text-sm text-muted-foreground">
+              No hay tipos de insumo configurados.{' '}
+              <Link href="/stock/tipos-insumo" className="text-primary underline">
+                Configura tipos de insumo
+              </Link>
+            </p>
+          ) : (
+            <div className="space-y-1">
+              <div className="grid grid-cols-[1fr_90px_110px_80px_32px] gap-2 px-2 pb-1">
+                <span className="text-xs text-muted-foreground">Insumo</span>
+                <span className="text-xs text-muted-foreground text-right">Cant. uds</span>
+                <span className="text-xs text-muted-foreground text-right">Costo total</span>
+                <span className="text-xs text-muted-foreground text-right">Aporte/ud</span>
+                <span />
+              </div>
+              {tipos.map((tipo) => {
+                const existing = pedido.detallesCosto.find(
+                  (d) => d.concepto.toLowerCase() === tipo.nombre.toLowerCase(),
+                );
+                return (
+                  <div
+                    key={tipo.id}
+                    className="grid grid-cols-[1fr_90px_110px_80px_32px] gap-2 items-center rounded-md border px-2 py-1.5"
+                  >
+                    <div className="flex items-center gap-1.5 min-w-0">
+                      <span className="text-sm font-medium truncate">{tipo.nombre}</span>
+                      {tipo.esObligatorio && (
+                        <span className="text-xs bg-blue-100 text-blue-700 px-1 rounded shrink-0">
+                          Oblig.
+                        </span>
+                      )}
+                    </div>
+
+                    {isBorrador ? (
+                      <>
+                        <Input
+                          type="number"
+                          min={0}
+                          className="no-spinner h-8 text-sm text-right"
+                          placeholder="0"
+                          value={getInsumo(tipo.id).cantidad}
+                          onChange={(e) => setInsumoField(tipo.id, 'cantidad', e.target.value)}
+                          onKeyDown={(e) => handleKeyDown(e, tipo)}
+                        />
+                        <Input
+                          type="number"
+                          min={0}
+                          className="no-spinner h-8 text-sm text-right"
+                          placeholder="$0"
+                          value={getInsumo(tipo.id).costoTotal}
+                          onChange={(e) => setInsumoField(tipo.id, 'costoTotal', e.target.value)}
+                          onKeyDown={(e) => handleKeyDown(e, tipo)}
+                        />
+                        <p className="text-sm text-right font-medium tabular-nums">
+                          {calcularAporte(tipo.id)}
+                        </p>
+                        <Button
+                          size="icon"
+                          variant="ghost"
+                          className="h-8 w-8 text-destructive hover:text-destructive"
+                          disabled={!existing || eliminarCosto.isPending}
+                          onClick={() => {
+                            if (!existing) return;
+                            eliminarCosto.mutate(
+                              { pedidoId: id, costoId: existing.id },
+                              {
+                                onSuccess: () => {
+                                  setInsumos((prev) => ({
+                                    ...prev,
+                                    [tipo.id]: { cantidad: '', costoTotal: '' },
+                                  }));
+                                  toast.success(`${tipo.nombre} removido`);
+                                },
+                                onError: () => toast.error('Error al eliminar'),
+                              },
+                            );
+                          }}
+                          title="Eliminar"
+                        >
+                          <Trash2 className="h-3.5 w-3.5" />
+                        </Button>
+                      </>
+                    ) : (
+                      <>
+                        <p className="text-sm text-right text-muted-foreground">
+                          {existing?.cantidad ?? '—'}
+                        </p>
+                        <p className="text-sm text-right font-semibold">
+                          {existing ? formatCOP(existing.costoTotal) : '—'}
+                        </p>
+                        <p className="text-sm text-right tabular-nums">
+                          {existing
+                            ? `$${(existing.costoTotal / pedido.cantidadTrabix).toLocaleString('es-CO', { maximumFractionDigits: 0 })}`
+                            : '—'}
+                        </p>
+                        <span />
+                      </>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      {isBorrador && (
         <>
           <Separator />
-          <div className="flex gap-2 flex-wrap">
-            {isBorrador && <Button onClick={() => setConfirmAction('confirmar')}>Confirmar Pedido</Button>}
-            {isConfirmado && <Button onClick={() => setConfirmAction('recibir')}>Marcar como Recibido</Button>}
-            {(isBorrador || isConfirmado) && <Button variant="destructive" onClick={() => setConfirmAction('cancelar')}>Cancelar Pedido</Button>}
-          </div>
+          <Button onClick={() => setConfirmRecibir(true)}>Marcar como Recibido</Button>
         </>
       )}
 
       <ConfirmDialog
-        open={confirmAction === 'confirmar'}
-        onOpenChange={(open) => !open && setConfirmAction(null)}
-        title="Confirmar Pedido"
-        description="¿Confirmar este pedido de stock?"
-        onConfirm={handleConfirmAction}
-        isLoading={confirmar.isPending}
-      />
-      <ConfirmDialog
-        open={confirmAction === 'recibir'}
-        onOpenChange={(open) => !open && setConfirmAction(null)}
+        open={confirmRecibir}
+        onOpenChange={(open) => !open && setConfirmRecibir(false)}
         title="Recibir Pedido"
-        description="¿Marcar este pedido como recibido? El stock se actualizará."
-        onConfirm={handleConfirmAction}
+        description="¿Marcar este pedido como recibido? Se actualizará el stock físico y se calcularán los costos finales."
+        confirmLabel="Recibir"
+        onConfirm={() => {
+          recibir.mutate(id, {
+            onSuccess: () => {
+              toast.success('Pedido recibido — stock actualizado');
+              setConfirmRecibir(false);
+            },
+            onError: (err) => {
+              toast.error(getApiError(err, 'Error al recibir pedido'));
+              setConfirmRecibir(false);
+            },
+          });
+        }}
         isLoading={recibir.isPending}
-      />
-      <ConfirmDialog
-        open={confirmAction === 'cancelar'}
-        onOpenChange={(open) => !open && setConfirmAction(null)}
-        title="Cancelar Pedido"
-        description={
-          <div className="space-y-2">
-            <p>¿Cancelar este pedido?</p>
-            <Input placeholder="Motivo de cancelación" value={motivoCancelacion} onChange={(e) => setMotivoCancelacion(e.target.value)} />
-          </div>
-        }
-        onConfirm={handleConfirmAction}
-        isLoading={cancelar.isPending}
-        variant="destructive"
       />
     </div>
   );

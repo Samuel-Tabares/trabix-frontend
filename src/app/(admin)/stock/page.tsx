@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { Plus } from 'lucide-react';
+import { Plus, Settings2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import {
@@ -12,9 +12,8 @@ import {
 import { Skeleton } from '@/components/ui/skeleton';
 import { DataTable } from '@/components/shared/data-table';
 import { EstadoBadge } from '@/components/shared/estado-badge';
-import { ConfirmDialog } from '@/components/shared/confirm-dialog';
 import { useStockAdmin, useDeficit, useStockReservado } from '@/lib/hooks/use-admin-stock';
-import { usePedidosStock, useConfirmarPedido, useCancelarPedido } from '@/lib/hooks/use-pedidos-stock';
+import { usePedidosStock } from '@/lib/hooks/use-pedidos-stock';
 import { EstadoPedidoStock } from '@/types/enums';
 import { formatCOP, formatDate } from '@/lib/utils/format';
 import type { PedidoStockResponse } from '@/types/stock.types';
@@ -25,10 +24,6 @@ export default function StockPage() {
   const router = useRouter();
   const [page, setPage] = useState(1);
   const [estadoPedido, setEstadoPedido] = useState<string>('all');
-  const [pendingAction, setPendingAction] = useState<{ id: string; action: 'confirmar' | 'cancelar' } | null>(null);
-
-  const confirmarPedido = useConfirmarPedido();
-  const cancelarPedido = useCancelarPedido();
 
   const { data: stock, isLoading: loadingStock } = useStockAdmin();
   const { data: deficit, isLoading: loadingDeficit } = useDeficit();
@@ -46,8 +41,6 @@ export default function StockPage() {
     { key: 'estado', label: 'Estado', render: (val: string) => <EstadoBadge estado={val} /> },
     { key: 'fechaCreacion', label: 'Fecha', render: (val: string) => formatDate(val), className: 'hidden md:table-cell' },
   ];
-
-  const isMutating = confirmarPedido.isPending || cancelarPedido.isPending;
 
   return (
     <div className="space-y-6">
@@ -71,21 +64,40 @@ export default function StockPage() {
       {!loadingReservado && reservado && reservado.porVendedor && reservado.porVendedor.length > 0 && (
         <Card>
           <CardHeader><CardTitle className="text-base">Reservado por Vendedor</CardTitle></CardHeader>
-          <CardContent className="space-y-2">
-            {reservado.porVendedor.map((v) => (
-              <div key={v.vendedorId} className="flex justify-between rounded-md border p-2 text-sm">
-                <span>{v.nombre}</span>
-                <span className="font-semibold">{v.cantidad} uds</span>
-              </div>
-            ))}
+          <CardContent>
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="border-b text-muted-foreground">
+                  <th className="py-2 text-left font-medium">Vendedor</th>
+                  <th className="py-2 text-right font-medium">Lotes activos</th>
+                  <th className="py-2 text-right font-medium">Total reservado</th>
+                </tr>
+              </thead>
+              <tbody>
+                {reservado.porVendedor.map((v) => (
+                  <tr key={v.vendedorId} className="border-b last:border-0">
+                    <td className="py-2">{v.vendedorNombre}</td>
+                    <td className="py-2 text-right text-muted-foreground">{v.lotesActivos}</td>
+                    <td className="py-2 text-right font-semibold">{v.cantidadReservada} uds</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
           </CardContent>
         </Card>
       )}
 
       <div className="space-y-4">
-        <div className="flex items-center justify-between">
+        <div className="flex items-center justify-between flex-wrap gap-2">
           <h2 className="text-lg font-semibold">Pedidos de Stock</h2>
-          <Link href="/stock/pedidos/crear"><Button size="sm"><Plus className="h-4 w-4 mr-1" />Nuevo Pedido</Button></Link>
+          <div className="flex gap-2">
+            <Link href="/stock/tipos-insumo">
+              <Button size="sm" variant="outline"><Settings2 className="h-4 w-4 mr-1" />Tipos de Insumo</Button>
+            </Link>
+            <Link href="/stock/pedidos/crear">
+              <Button size="sm"><Plus className="h-4 w-4 mr-1" />Nuevo Pedido</Button>
+            </Link>
+          </div>
         </div>
 
         <Select value={estadoPedido} onValueChange={(v) => { setEstadoPedido(v); setPage(1); }}>
@@ -93,9 +105,7 @@ export default function StockPage() {
           <SelectContent>
             <SelectItem value="all">Todos</SelectItem>
             <SelectItem value={EstadoPedidoStock.BORRADOR}>Borrador</SelectItem>
-            <SelectItem value={EstadoPedidoStock.CONFIRMADO}>Confirmado</SelectItem>
             <SelectItem value={EstadoPedidoStock.RECIBIDO}>Recibido</SelectItem>
-            <SelectItem value={EstadoPedidoStock.CANCELADO}>Cancelado</SelectItem>
           </SelectContent>
         </Select>
 
@@ -105,53 +115,9 @@ export default function StockPage() {
           isLoading={loadingPedidos}
           emptyMessage="No hay pedidos de stock"
           pagination={{ page, pageSize: PAGE_SIZE, total: pedidos?.total ?? 0, onPageChange: setPage }}
-          onRowClick={(row) => router.push(`/stock/pedidos/${row.id}`)}
-          rowActions={(row: PedidoStockResponse) =>
-            row.estado === EstadoPedidoStock.BORRADOR ? (
-              <>
-                <Button
-                  size="sm"
-                  variant="outline"
-                  onClick={(e) => { e.stopPropagation(); setPendingAction({ id: row.id, action: 'confirmar' }); }}
-                >
-                  Confirmar
-                </Button>
-                <Button
-                  size="sm"
-                  variant="outline"
-                  className="text-destructive hover:text-destructive"
-                  onClick={(e) => { e.stopPropagation(); setPendingAction({ id: row.id, action: 'cancelar' }); }}
-                >
-                  Cancelar
-                </Button>
-              </>
-            ) : null
-          }
+          onRowClick={(row: PedidoStockResponse) => router.push(`/stock/pedidos/${row.id}`)}
         />
       </div>
-
-      <ConfirmDialog
-        open={pendingAction !== null}
-        onOpenChange={(open) => { if (!open) setPendingAction(null); }}
-        title={pendingAction?.action === 'confirmar' ? 'Confirmar pedido' : 'Cancelar pedido'}
-        description={
-          pendingAction?.action === 'confirmar'
-            ? '¿Confirmar este pedido de stock? El pedido quedará listo para recepción.'
-            : '¿Cancelar este pedido de stock? Esta acción no se puede deshacer.'
-        }
-        confirmLabel={pendingAction?.action === 'confirmar' ? 'Confirmar' : 'Cancelar pedido'}
-        variant={pendingAction?.action === 'cancelar' ? 'destructive' : 'default'}
-        onConfirm={() => {
-          if (!pendingAction) return;
-          if (pendingAction.action === 'confirmar') {
-            confirmarPedido.mutate(pendingAction.id);
-          } else {
-            cancelarPedido.mutate({ id: pendingAction.id, data: { motivo: 'Cancelado por administrador' } });
-          }
-          setPendingAction(null);
-        }}
-        isLoading={isMutating}
-      />
     </div>
   );
 }

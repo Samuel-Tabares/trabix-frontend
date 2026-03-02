@@ -142,7 +142,7 @@ export default function LoteDetallePage({
           ))}
           <div className="flex gap-2 rounded-md border border-blue-200 bg-blue-50 p-3 text-sm text-blue-700">
             <Info className="mt-0.5 h-4 w-4 shrink-0" />
-            <p>Cuando una tanda es liberada, en un par de horas pasará a tránsito para gestionar la entrega de la misma.</p>
+            <p>Para las tandas EN TRÁNSITO se gestiona el reparto y admin contactará contigo</p>
           </div>
         </CardContent>
       </Card>

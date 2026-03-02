@@ -301,7 +301,9 @@ export default function EquipamientoDetallePage({ params }: { params: Promise<{ 
         {equipo.estado === 'SOLICITADO' && <Button onClick={() => setAction('activar')}>Activar</Button>}
         {equipo.estado === 'ACTIVO' && (
           <>
-            <Button onClick={() => setAction('mensualidad')}>Pagar Mensualidad</Button>
+            {equipo.mensualidadesPendientes > 0 && (
+              <Button onClick={() => setAction('mensualidad')}>Pagar Mensualidad</Button>
+            )}
             <Button
               variant="outline"
               onClick={() => setAction('dano-nevera')}

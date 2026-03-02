@@ -7,7 +7,6 @@ import type {
   CrearPedidoRequest,
   ModificarPedidoRequest,
   AgregarCostoRequest,
-  CancelarPedidoRequest,
 } from '@/types/stock.types';
 
 export function usePedidosStock(params?: QueryPedidosParams) {
@@ -69,17 +68,6 @@ export function useEliminarCosto() {
   });
 }
 
-export function useConfirmarPedido() {
-  const queryClient = useQueryClient();
-  return useMutation({
-    mutationFn: (id: string) => pedidosStockApi.confirmar(id),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['pedidos-stock'] });
-      queryClient.invalidateQueries({ queryKey: ['admin-stock'] });
-    },
-  });
-}
-
 export function useRecibirPedido() {
   const queryClient = useQueryClient();
   return useMutation({
@@ -87,17 +75,6 @@ export function useRecibirPedido() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['pedidos-stock'] });
       queryClient.invalidateQueries({ queryKey: ['admin-stock'] });
-    },
-  });
-}
-
-export function useCancelarPedido() {
-  const queryClient = useQueryClient();
-  return useMutation({
-    mutationFn: ({ id, data }: { id: string; data: CancelarPedidoRequest }) =>
-      pedidosStockApi.cancelar(id, data),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['pedidos-stock'] });
     },
   });
 }

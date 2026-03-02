@@ -6,7 +6,6 @@ import type {
   CrearPedidoRequest,
   ModificarPedidoRequest,
   AgregarCostoRequest,
-  CancelarPedidoRequest,
 } from '@/types/stock.types';
 
 export const pedidosStockApi = {
@@ -45,21 +44,8 @@ export const pedidosStockApi = {
     return response.data;
   },
 
-  confirmar: async (id: string): Promise<PedidoStockResponse> => {
-    const response = await apiClient.post<PedidoStockResponse>(`admin/pedidos-stock/${id}/confirmar`);
-    return response.data;
-  },
-
   recibir: async (id: string): Promise<PedidoStockResponse> => {
     const response = await apiClient.post<PedidoStockResponse>(`admin/pedidos-stock/${id}/recibir`);
-    return response.data;
-  },
-
-  cancelar: async (id: string, data: CancelarPedidoRequest): Promise<PedidoStockResponse> => {
-    const response = await apiClient.post<PedidoStockResponse>(
-      `admin/pedidos-stock/${id}/cancelar`,
-      data,
-    );
     return response.data;
   },
 };

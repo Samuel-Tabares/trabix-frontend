@@ -23,7 +23,6 @@ export interface TipoInsumo {
   id: string;
   nombre: string;
   esObligatorio: boolean;
-  activo: boolean;
   fechaCreacion: string;
 }
 

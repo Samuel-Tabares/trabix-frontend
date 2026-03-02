@@ -94,7 +94,7 @@ export default function InicioPage() {
           <div className="space-y-2">
             {lotesActivos.map((lote) => {
               const tanda = lote.tandas?.find(
-                (t) => t.estado === 'EN_CASA' || t.estado === 'LIBERADA' || t.estado === 'EN_TRANSITO',
+                (t) => t.estado === 'EN_CASA' || t.estado === 'EN_TRANSITO',
               );
               const loteNum = loteNumeroMap.get(lote.id);
               return (

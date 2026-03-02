@@ -175,12 +175,17 @@ export default function CuadreDetallePage({ params }: { params: Promise<{ id: st
         <Card>
           <CardHeader><CardTitle className="text-base">Confirmar Cuadre</CardTitle></CardHeader>
           <CardContent className="space-y-3">
-            {cuadre.desglose && cuadre.desglose.deudaDano > 0 && (
+            {cuadre.desglose && (cuadre.desglose.deudaDano > 0 || cuadre.desglose.mensualidades > 0 || cuadre.desglose.deudaPerdida > 0) && (
               <div className="flex gap-2 rounded-md border border-red-200 bg-red-50 p-3 text-sm text-red-800">
                 <AlertTriangle className="h-4 w-4 mt-0.5 shrink-0 text-red-600" />
                 <p>
-                  <span className="font-semibold">Atención — deuda por daño de equipamiento pendiente.</span>{' '}
-                  Primero se debe saldar completamente la deuda del equipamiento dañado antes de registrar abonos a este cuadre.
+                  <span className="font-semibold">Atención — deudas de equipamiento pendientes en este cuadre{' '}
+                  ({[
+                    cuadre.desglose.deudaDano > 0 && 'daño',
+                    cuadre.desglose.mensualidades > 0 && 'mensualidad',
+                    cuadre.desglose.deudaPerdida > 0 && 'pérdida',
+                  ].filter(Boolean).join(', ')}).</span>{' '}
+                  Primero se deben saldar completamente estas deudas de equipamiento antes de registrar abonos a este cuadre.
                   Registrar abonos antes genera inconsistencias financieras.
                 </p>
               </div>

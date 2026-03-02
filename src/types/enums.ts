@@ -22,7 +22,6 @@ export enum ModeloNegocio {
 
 export enum EstadoTanda {
   INACTIVA = 'INACTIVA',
-  LIBERADA = 'LIBERADA',
   EN_TRANSITO = 'EN_TRANSITO',
   EN_CASA = 'EN_CASA',
   FINALIZADA = 'FINALIZADA',
@@ -73,9 +72,7 @@ export enum EstadoEquipamiento {
 
 export enum EstadoPedidoStock {
   BORRADOR = 'BORRADOR',
-  CONFIRMADO = 'CONFIRMADO',
   RECIBIDO = 'RECIBIDO',
-  CANCELADO = 'CANCELADO',
 }
 
 export enum TipoNotificacion {

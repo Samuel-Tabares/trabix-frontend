@@ -9,7 +9,6 @@ export const ESTADO_COLORS: Record<string, string> = {
   PENDIENTE: 'bg-yellow-100 text-yellow-800',
   CREADO: 'bg-yellow-100 text-yellow-800',
   BORRADOR: 'bg-yellow-100 text-yellow-800',
-  LIBERADA: 'bg-yellow-100 text-yellow-800',
   SOLICITADO: 'bg-yellow-100 text-yellow-800',
 
   // Inactive states

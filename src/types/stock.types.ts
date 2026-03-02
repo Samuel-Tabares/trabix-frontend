@@ -48,8 +48,8 @@ export interface DeficitResponse {
 export interface StockReservadoDetallado {
   totalReservado: number;
   porEstado: Record<string, number>;
-  porVendedor: { vendedorId: string; nombre: string; cantidad: number }[];
-  porLote: { loteId: string; cantidad: number }[];
+  porVendedor: { vendedorId: string; vendedorNombre: string; cantidadReservada: number; lotesActivos: number }[];
+  porLote: { loteId: string; vendedorId: string; vendedorNombre: string; stockPendiente: number; estadoLote: string }[];
 }
 
 export interface PedidoStockResponse {
@@ -104,6 +104,3 @@ export interface AgregarCostoRequest {
   costoTotal: number;
 }
 
-export interface CancelarPedidoRequest {
-  motivo: string;
-}
